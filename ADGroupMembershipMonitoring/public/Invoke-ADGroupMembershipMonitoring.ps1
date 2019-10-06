@@ -1,5 +1,3 @@
-# Requires -Version 5.0
-
 function Invoke-ADGroupMembershipMonitoring
 {
     <#
@@ -12,7 +10,7 @@ function Invoke-ADGroupMembershipMonitoring
         Specify the group(s) to query in Active Directory.
         You can also specify the 'DN','GUID','SID' or the 'Name' of your group(s).
         Using 'Domain\Name' will also work.
-.PARAMETER Recurse
+.PARAMETER Recursive
         by default, search for group members with direct membership,
         Specify this switch and group members with indirect membership through group nesting will also be searched
     .PARAMETER SearchRoot
@@ -70,84 +68,60 @@ function Invoke-ADGroupMembershipMonitoring
     .PARAMETER Path
         Specify a path for data storage, where subfolders will be created for the CSV and HTML files
     .EXAMPLE
-        .\AD-GROUP-Monitor_MemberShip.ps1 -Group "FXGroup" -EmailFrom "From@Company.com" -EmailTo "To@Company.com" -EmailServer "mail.company.com"
-        This will run the script against the group FXGROUP and send an email to To@Company.com using the address From@Company.com and the server mail.company.com.
-    .EXAMPLE
-        .\AD-GROUP-Monitor_MemberShip.ps1 -Group "FXGroup","FXGroup2","FXGroup3" -EmailFrom "From@Company.com" -Emailto "To@Company.com" -EmailServer "mail.company.com"
-        This will run the script against the groups FXGROUP,FXGROUP2 and FXGROUP3  and send an email to To@Company.com using the address From@Company.com and the Server mail.company.com.
-    .EXAMPLE
-        .\AD-GROUP-Monitor_MemberShip.ps1 -Group "FXGroup" -EmailFrom "From@Company.com" -Emailto "To@Company.com" -EmailServer "mail.company.com" -Verbose
-        This will run the script against the group FXGROUP and send an email to To@Company.com using the address From@Company.com and the server mail.company.com. Additionally the switch Verbose is activated to show the activities of the script.
-    .EXAMPLE
-        .\AD-GROUP-Monitor_MemberShip.ps1 -Group "FXGroup" -EmailFrom "From@Company.com" -Emailto "Auditor@Company.com","Auditor2@Company.com" -EmailServer "mail.company.com" -Verbose
-        This will run the script against the group FXGROUP and send an email to Auditor@Company.com and Auditor2@Company.com using the address From@Company.com and the server mail.company.com. Additionally the switch Verbose is activated to show the activities of the script.
-    .EXAMPLE
-        .\AD-GROUP-Monitor_MemberShip.ps1 -SearchRoot 'FX.LAB/TEST/Groups' -Emailfrom Reporting@fx.lab -Emailto "Catfx@fx.lab" -EmailServer 192.168.1.10 -Verbose
-        This will run the script against all the groups present in the CanonicalName 'FX.LAB/TEST/Groups' and send an email to catfx@fx.lab using the address Reporting@fx.lab and the server 192.168.1.10. Additionally the switch Verbose is activated to show the activities of the script.
-    .EXAMPLE
-        .\AD-GROUP-Monitor_MemberShip.ps1 -file .\groupslist.txt -Emailfrom Reporting@fx.lab -Emailto "Catfx@fx.lab" -EmailServer 192.168.1.10 -Verbose
-        This will run the script against all the groups present in the file groupslists.txt and send an email to catfx@fx.lab using the address Reporting@fx.lab and the server 192.168.1.10. Additionally the switch Verbose is activated to show the activities of the script.
-    .EXAMPLE
-        .\AD-GROUP-Monitor_MemberShip.ps1 -server DC01.fx.lab -file .\groupslist.txt -Emailfrom Reporting@fx.lab -Emailto "Catfx@fx.lab" -EmailServer 192.168.1.10 -Verbose
-        This will run the script against the Domain Controller "DC01.fx.lab" on all the groups present in the file groupslists.txt and send an email to catfx@fx.lab using the address Reporting@fx.lab and the server 192.168.1.10. Additionally the switch Verbose is activated to show the activities of the script.
-    .EXAMPLE
-        .\AD-GROUP-Monitor_MemberShip.ps1 -server DC01.fx.lab:389 -file .\groupslist.txt -Emailfrom Reporting@fx.lab -Emailto "Catfx@fx.lab" -EmailServer 192.168.1.10 -Verbose
-        This will run the script against the Domain Controller "DC01.fx.lab" (on port 389) on all the groups present in the file groupslists.txt and send an email to catfx@fx.lab using the address Reporting@fx.lab and the server 192.168.1.10. Additionally the switch Verbose is activated to show the activities of the script.
-    .EXAMPLE
-        .\AD-GROUP-Monitor_MemberShip.ps1 -group "Domain Admins" -Emailfrom Reporting@fx.lab -Emailto "Catfx@fx.lab" -EmailServer 192.168.1.10 -EmailEncoding 'ASCII' -SaveAsHTML
-        This will run the script against the group "Domain Admins" and send an email (using the encoding ASCII) to catfx@fx.lab using the address Reporting@fx.lab and the SMTP server 192.168.1.10. It will also save a local HTML report under the HTML Directory.
-    .EXAMPLE
-        .\AD-GROUP-Monitor_MemberShip.ps1 -Group "FXGroup" -EmailFrom "From@Company.com" -EmailTo "To@Company.com" -EmailServer "mail.company.com" -EmailCredential (Get-Credential)
-        This will run the script against the group FXGROUP and send an email to To@Company.com using the address From@Company.com and the server mail.company.com, using the credential specified.
+        PS> Invoke-ADGroupMembershipMonitoring -Group 'Domain Admins' -EmailFrom 'From@Company.com' -EmailTo 'To@Company.com' -EmailServer 'mail.company.com'
+        This will query the group  'Domain Admins' and send an email to 'To@Company.com' using the address 'From@Company.com' and the server 'mail.company.com'.
     .INPUTS
         System.String
     .OUTPUTS
         Email Report
     .NOTES
-        NAME:    AD-GROUP-Monitor_MemberShip.ps1
-        AUTHOR: Adrian Deller
-        EMAIL:  adrian.deller@unibas.ch
+        FileName:    Invoke-ADGroupMembershipMonitoring.ps1
+        Author:      Adrian Deller
+        Contact:     adrian.deller@unibas.ch
+        Created:     2019-10-05
+        Updated:     2019-10-06
+        Version:     0.1.1
     #>
 
-    [CmdletBinding(DefaultParameterSetName = "Group")]
+    [CmdletBinding(DefaultParameterSetName = 'Group')]
 
     param
     (
-        [Parameter(ParameterSetName = "Group", Mandatory = $true, HelpMessage = "You must specify at least one Active Directory group")]
+        [Parameter(ParameterSetName = 'Group', Mandatory = $true, HelpMessage = 'You must specify at least one Active Directory group')]
         [ValidateNotNull()]
         [Alias('DN', 'DistinguishedName', 'GUID', 'SID', 'Name')]
         [string[]]
         $Group,
 
-        [Parameter(Mandatory = $false, HelpMessage = "Should the AD group members be searched recursively?")]
+        [Parameter(Mandatory = $false, HelpMessage = 'Should the AD group members be searched recursively?')]
         [switch]
-        $Recurse,
+        $Recursive,
 
-        [Parameter(ParameterSetName = "OU", Mandatory = $true)]
+        [Parameter(ParameterSetName = 'OU', Mandatory = $true, HelpMessage = 'You must specify at least one Active Directory OU')]
         [Alias('SearchBase')]
         [string[]]
         $SearchRoot,
 
-        [Parameter(ParameterSetName = "OU")]
-        [ValidateSet("Base", "OneLevel", "Subtree")]
+        [Parameter(ParameterSetName = 'OU')]
+        [ValidateSet('Base', 'OneLevel', 'Subtree')]
         [string]
         $SearchScope,
 
-        [Parameter(ParameterSetName = "OU")]
-        [ValidateSet("Global", "Universal", "DomainLocal")]
+        [Parameter(ParameterSetName = 'OU')]
+        [ValidateSet('Global', 'Universal', 'DomainLocal')]
         [String]
         $GroupScope,
 
-        [Parameter(ParameterSetName = "OU")]
-        [ValidateSet("Security", "Distribution")]
+        [Parameter(ParameterSetName = 'OU')]
+        [ValidateSet('Security', 'Distribution')]
         [string]
         $GroupType,
 
-        [Parameter(ParameterSetName = "OU", Mandatory = $true)]
+        [Parameter(ParameterSetName = 'OU')]
         [string]
         $GroupFilter,
 
-        [Parameter(ParameterSetName = "File", Mandatory = $true)]
+        [Parameter(ParameterSetName = 'File', Mandatory = $true, HelpMessage = 'You must specify at least one file')]
         [ValidateScript( { Test-Path -Path $_ })]
         [string[]]
         $File,
@@ -157,32 +131,32 @@ function Invoke-ADGroupMembershipMonitoring
         [string]
         $Server,
 
-        [Parameter(Mandatory = $true, HelpMessage = "You must specify the Sender E-Mail Address")]
+        [Parameter(Mandatory = $true, HelpMessage = 'You must specify the sender E-Mail Address')]
         [ValidatePattern("[a-z0-9!#\$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#\$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?")]
         [string]
         $EmailFrom,
 
-        [Parameter(Mandatory = $true, HelpMessage = "You must specify the Destination E-Mail Address")]
+        [Parameter(Mandatory = $true, HelpMessage = 'You must specify the destination E-Mail Address')]
         [ValidatePattern("[a-z0-9!#\$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#\$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?")]
         [string[]]
         $EmailTo,
 
-        [Parameter(Mandatory = $true, HelpMessage = "You must specify the E-Mail Server to use (IPAddress or FQDN)")]
+        [Parameter(Mandatory = $true, HelpMessage = 'You must specify the Mail Server to use (FQDN or ip address)')]
         [string]
         $EmailServer,
 
-        [Parameter(Mandatory = $true, HelpMessage = "You must specify the E-Mail Server Port")]
+        [Parameter(Mandatory = $false, HelpMessage = 'You can specify an alternate port on the (SMTP) Mail Server')]
         [string]
-        $EmailPort,
+        $EmailPort = '25',
 
-        [Parameter(Mandatory = $false, HelpMessage = "You can provide a prefix for the E-Mail subject")]
+        [Parameter(Mandatory = $false, HelpMessage = 'You can provide a prefix for the E-Mail subject')]
         [string]
         $EmailSubjectPrefix,
 
-        [Parameter()]
-        [ValidateSet("ASCII", "UTF8", "UTF7", "UTF32", "Unicode", "BigEndianUnicode", "Default")]
+        [Parameter(Mandatory = $false, HelpMessage = 'You can specify the type of encoding')]
+        [ValidateSet('ASCII', 'UTF8', 'UTF7', 'UTF32', 'Unicode', 'BigEndianUnicode', 'Default')]
         [string]
-        $EmailEncoding = "ASCII",
+        $EmailEncoding = 'Default',
 
         [Parameter()]
         [Switch]
@@ -204,8 +178,8 @@ function Invoke-ADGroupMembershipMonitoring
         [Switch]
         $ExtendedProperty,
 
-        [Parameter(Mandatory = $true, HelpMessage = "You must specify a path for data storage")]
-        [Alias('Path', 'OutputPath')]
+        [Parameter(Mandatory = $true, HelpMessage = 'You must specify a path for data storage')]
+        [Alias('OutputPath', 'FolderPath')]
         [string]
         $Path,
 
@@ -261,9 +235,13 @@ function Invoke-ADGroupMembershipMonitoring
             }
 
             # Set the Date and Time formats
-            $ReporDateFormat = 'yyyy-MM-dd HH:mm:ss'
-            $ChangesDateFormat = 'yyyy-MM-dd-HH:mm:ss' #'yyyyMMddHH:mm:ss'
-            $FileNameDateFormat = 'yyyyMMdd_HHmmss'
+            $ChangesDateTimeFormat = 's'                         # format for export to CSV files
+            $ReporCreatedDateTimeFormat = 'dd.MM.yyyy HH:mm:ss'  # format for report creation date/time information
+            $ReportChangesDateTimeFormat = 'yyyy-MM-dd HH:mm:ss' # format for DateTime property in HTML reports
+            $FileNameDateTimeFormat = 'yyyyMMdd_HHmmss'          # format for DateTime information in CSV file names
+
+            # list of known DateTime formats used in legacy CSV files
+            $KnownInputFormat = 'yyyyMMdd-HH:mm:ss'
 
             # Active Directory Module
             Write-Verbose -Message "[$ScriptName][Begin] Active Directory Module"
@@ -283,23 +261,42 @@ function Invoke-ADGroupMembershipMonitoring
             Write-Verbose -Message "[$ScriptName][Begin] Setting HTML Variables"
 
             # HTML Report Settings
-            $Report = "<p style=`"background-color: white; font-family: consolas; font-size: 9pt;`">" +
-            "<strong>Report Time:</strong> $(Get-Date -Format $ReporDateFormat) <br>" +
-            "<strong>Account:</strong> $env:USERDOMAIN\$($env:USERNAME) on $($env:COMPUTERNAME)" +
+            #$Report = "<p style=`"background-color: white; font-family: consolas; font-size: 9pt;`">" +
+            $Report = "<p style=`"background-color:white; font-family:Calibri; font-size:10pt`">"
+            "<strong>Report created:</strong>$(Get-Date -Format $ReporCreatedDateTimeFormat)<br>" +
+            "<strong>Account:</strong>$env:USERDOMAIN\$($env:USERNAME) on $($env:COMPUTERNAME)" +
             "</p>"
 
+            <#
             $Head = "<style>" +
             "body { background-color: white; font-family: consolas; font-size: 11pt; }" +
             "table { border-width: 1px; border-style: solid; border-color: black; border-collapse: collapse; }" +
             "th { border-width: 1px; padding: 3px; border-style: solid; border-color: black; background-color:`"#00297a`"; font-color: white; }" +
             "td { border-width: 1px; padding-right: 2px; padding-left: 2px; padding-top: 0px; padding-bottom: 0px; border-style: solid; border-color: black; background-color: white; }" +
             "</style>"
+            #>
+            $Head = "<style>" +
+            "body {background-color:white; font-family:Calibri; font-size:11pt}" +
+            "h2,h3 {font-family:Calibri}" +
+            "table {border-width: 1px;border-style: solid;border-color: black;border-collapse: collapse}" +
+            "th {border-width: 1px;padding: 3px;border-style: solid;border-color: black;background-color:`"#00297A`";font-color:white}" +
+            "td {border-width: 1px;padding-right: 2px;padding-left: 2px;padding-top: 0px;padding-bottom: 0px;border-style: solid;border-color: black;background-color:white}" +
+            "</style>"
 
+            <#
             $Head2 = "<style>" +
             "body { background-color: white; font-family: consolas; font-size: 9pt; }" +
             "table { border-width: 1px; border-style: solid; border-color: black; border-collapse: collapse; }" +
             "th { border-width: 1px; padding: 3px; border-style: solid; border-color: black; background-color: `"#c0c0c0`"; }" +
             "td { border-width: 1px; padding-right: 2px; padding-left: 2px; padding-top: 0px; padding-bottom: 0px; border-style: solid; border-color: black; background-color: white; }" +
+            "</style>"
+            #>
+            $Head2 = "<style>" +
+            "body {background-color:white; font-family:Calibri; font-size:10pt;}" +
+            "h2,h3 {font-family:Calibri}" +
+            "table {border-width:1px; border-style:solid; border-color:black; border-collapse:collapse;}" +
+            "th {border-width:1px; padding:3px; border-style:solid; border-color:black; background-color:`"#C0C0C0`"}" +
+            "td {border-width:1px; padding-right:2px; padding-left:2px; padding-top:0px; padding-bottom:0px; border-style:solid; border-color:black; background-color:white}" +
             "</style>"
         }
         catch
@@ -414,6 +411,8 @@ function Invoke-ADGroupMembershipMonitoring
             #foreach ($item in $Group)
             @($Group).ForEach{
 
+                $Changes, $GroupName = $null
+
                 $item = $PSItem
 
                 try
@@ -453,7 +452,7 @@ function Invoke-ADGroupMembershipMonitoring
                         }
 
 
-                        if ($PSBoundParameters['Recurse'])
+                        if ($PSBoundParameters['Recursive'])
                         {
                             $MemberObjs = Get-ADGroupMember @GroupMemberSplatting -Recursive -ErrorAction Stop -ErrorVariable ErrorProcessGetADGroupMember
                         }
@@ -473,8 +472,8 @@ function Invoke-ADGroupMembershipMonitoring
                             Write-Verbose -Message "[$ScriptName][Process] Group: $item is empty"
 
                             $Members = [PSCustomObject]@{
-                                Name           = "No User or Group"
-                                SamAccountName = "No User or Group"
+                                Name           = "No Member"
+                                SamAccountName = "No Member"
                             }
                         }
 
@@ -499,9 +498,10 @@ function Invoke-ADGroupMembershipMonitoring
 
                         $ImportCSV = Import-Csv -Path (Join-Path -Path $ScriptPathCurrent -ChildPath $StateFile) -ErrorAction Stop -ErrorVariable ErrorProcessImportCSV
 
-                        $Changes = Compare-Object -DifferenceObject $ImportCSV -ReferenceObject $Members -ErrorAction Stop -ErrorVariable ErrorProcessCompareObject -Property Name, SamAccountName, DN |
-                            Select-Object -Property @{ Name = 'DateTime'; Expression = { Get-Date -Format } }, @{
-                                Name = 'State'; expression = {
+                        #$Changes = Compare-Object -DifferenceObject $ImportCSV -ReferenceObject $Members -ErrorAction Stop -ErrorVariable ErrorProcessCompareObject -Property Name, SamAccountName, DN |
+                        $Changes = Compare-Object -DifferenceObject $ImportCSV -ReferenceObject $Members -ErrorAction Stop -ErrorVariable ErrorProcessCompareObject -Property SamAccountName |
+                            Select-Object -Property @{Name = 'DateTime'; Expression = { Get-Date -Format $ChangesDateTimeFormat } }, @{
+                                Name = 'State'; Expression = {
                                     if ($_.SideIndicator -eq "=>")
                                     {
                                         "Removed"
@@ -511,7 +511,7 @@ function Invoke-ADGroupMembershipMonitoring
                                         "Added"
                                     }
                                 }
-                            }, DisplayName, Name, SamAccountName, DN | Where-Object { $_.Name -notlike "*no user or group*" }
+                            }, DisplayName, Name, SamAccountName, DN | Where-Object { $_.Name -notlike "*No Member*" }
 
                         Write-Verbose -Message "[$ScriptName][Process] $item - Compare Block Done!"
 
@@ -588,7 +588,7 @@ function Invoke-ADGroupMembershipMonitoring
                                 } #foreach ($obj in $Members)
 
                                 Write-Verbose -Message "[$ScriptName][Process] $item - Full Member List Process Completed"
-                            } # if ($IncludeMembers)
+                            }
 
                             if ($Changes)
                             {
@@ -602,12 +602,13 @@ function Invoke-ADGroupMembershipMonitoring
                                 {
                                     $Changes | Export-Csv -Path (Join-Path -Path $ScriptPathHistory -ChildPath "$($DomainName)_$($RealGroupName)-ChangeHistory.csv") -NoTypeInformation -Append -Encoding Unicode
                                 }
-                            } # if ($Changes)
+                            }
 
                             # Email
                             Write-Verbose -Message "[$ScriptName][Process] $item - Preparing the notification email..."
 
                             # Preparing the body of the email
+                            <#
                             $Body = "<h2>Group: $($GroupName.SamAccountName)</h2>"
                             $Body += "<p style=`"background-color: white; font-family: consolas; font-size: 8pt;`">"
                             $Body += "<u>Group Description:</u> $($GroupName.Description)<br>"
@@ -616,6 +617,16 @@ function Invoke-ADGroupMembershipMonitoring
                             $Body += "<u>Group SID:</u> $($GroupName.Sid.Value)<br>"
                             $Body += "<u>Group Scope/Type:</u> $($GroupName.GroupScope) / $($GroupName.GroupType)<br>"
                             $Body += "</p>"
+                            #>
+                            $body = "<h2>Group: $RealGroupName</h2>"
+                            $body += "<p style=`"background-color:white; font-family:Calibri; font-size:10pt`">"
+                            $body += "<b>SamAccountName:</b> $($GroupName.SamAccountName)<br>"
+                            $body += "<b>Description:</b> $($GroupName.Description)<br>"
+                            $body += "<b>DistinguishedName:</b> $($GroupName.DistinguishedName)<br>"
+                            $body += "<b>CanonicalName:</b> $($GroupName.CanonicalName)<br>"
+                            $body += "<b>SID:</b> $($GroupName.Sid.value)<br>"
+                            $body += "<b>Scope/Type:</b> $($GroupName.GroupScope) / $($GroupName.GroupType)<br>"
+                            $body += "</p>"
 
                             if ($Changes)
                             {
@@ -624,22 +635,26 @@ function Invoke-ADGroupMembershipMonitoring
 
                                 # Removing the old DisplayName Property
                                 #$Changes = $Changes | Select-Object -Property DateTime, State, Name, SamAccountName, DN
-                                $Changes = $Changes | Select-Object -Property @{Name = 'DateTime'; Expression = { Get-Date $_.DateTime -Format $ChangesDateFormat } }, State, Name, SamAccountName, DN
+                                $Changes = $Changes | Select-Object -Property @{Name = 'DateTime'; Expression = { Convert-DateTimeString -String $_.DateTime -InputFormat $KnownInputFormat -OutputFormat $ReportChangesDateTimeFormat } }, State, Name, SamAccountName, DN
 
                                 $Body += $changes | ConvertTo-Html -head $Head | Out-String
                                 $Body += "<br><br><br>"
+
+                                $MailPriority = 'High'
                             }
                             else
                             {
                                 $Body += "<h3>Membership Change</h3>"
                                 $Body += "<i>No changes.</i>"
+
+                                $MailPriority = 'Normal'
                             }
 
                             if ($InfoChangeHistory)
                             {
                                 # Removing the old DisplayName Property
                                 #$InfoChangeHistory = $InfoChangeHistory | Select-Object -Property DateTime, State, Name, SamAccountName, DN
-                                $InfoChangeHistory = $InfoChangeHistory | Select-Object -Property @{Name = 'DateTime'; Expression = { Get-Date $_.DateTime -Format $ChangesDateFormat } }, State, Name, SamAccountName, DN
+                                $InfoChangeHistory = $InfoChangeHistory | Select-Object -Property @{Name = 'DateTime'; Expression = { Convert-DateTimeString -String $_.DateTime -InputFormat $KnownInputFormat -OutputFormat $ReportChangesDateTimeFormat } }, State, Name, SamAccountName, DN
 
                                 $Body += "<h3>Change History</h3>"
                                 $Body += "<i>List of previous changes on this group observed by the script</i>"
@@ -659,21 +674,34 @@ function Invoke-ADGroupMembershipMonitoring
 
                             if ($EmailSubjectPrefix)
                             {
-                                $EmailSubject = "$EmailSubjectPrefix $($GroupName.SamAccountName) Membership Change"
+                                $EmailSubject = "$EmailSubjectPrefix $($GroupName.SamAccountName) membership change detected"
                             }
                             else
                             {
-                                $EmailSubject = "[AD Group Membership Monitoring] $($GroupName.SamAccountName) Membership Change"
+                                $EmailSubject = "[AD Group Membership Monitoring] $($GroupName.SamAccountName) membership change detected"
                             }
 
-                            # only send e-mail for each group if 'OneReport' is not specified
-                            if (-not ($OneReport))
+                            if ($OneReport)
                             {
+                                if ($OneReportMailPriority -eq 'High')
+                                {
+                                    # Priority is already set to 'High' do to a changed group, so no update to priority
+                                }
+                                else
+                                {
+                                    $OneReportMailPriority = $MailPriority
+                                }
+                            }
+                            else
+                            {
+                                # only send e-mail for each group if 'OneReport' is not specified
+
                                 $mailParam = @{
                                     To         = $EmailTo
                                     From       = $EmailFrom
                                     Subject    = $EmailSubject
                                     Body       = $Body
+                                    Priority   = $MailPriority
                                     SmtpServer = $EmailServer
                                     Port       = $EmailPort
                                     Credential = $EmailCredential
@@ -689,7 +717,7 @@ function Invoke-ADGroupMembershipMonitoring
                             $Members | Export-Csv -Path (Join-Path -Path $ScriptPathCurrent -ChildPath $StateFile) -NoTypeInformation -Encoding Unicode
 
                             # Define HTML File Name
-                            $HTMLFileName = "$($DomainName)_$($RealGroupName)-$(Get-Date -Format $FileNameDateFormat).html"
+                            $HTMLFileName = "$($DomainName)_$($RealGroupName)-$(Get-Date -Format $FileNameDateTimeFormat).html"
 
                             if ($PSBoundParameters['SaveAsHTML'])
                             {
@@ -753,6 +781,7 @@ function Invoke-ADGroupMembershipMonitoring
                     From        = $EmailFrom
                     Subject     = $EmailSubject
                     Body        = "<h2>See Report in Attachment</h2>"
+                    Priority    = $OneReportMailPriority
                     SmtpServer  = $EmailServer
                     Port        = $EmailPort
                     Credential  = $EmailCredential

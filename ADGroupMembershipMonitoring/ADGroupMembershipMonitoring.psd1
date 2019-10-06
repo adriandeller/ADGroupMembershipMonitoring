@@ -94,7 +94,7 @@
 
         PSData = @{
 
-            # ExternalModuleDependencies
+            # External dependent modules of this module
             ExternalModuleDependencies = @('ActiveDirectory')
 
             # Tags applied to this module. These help with module discovery in online galleries.
