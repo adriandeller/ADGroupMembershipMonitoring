@@ -697,7 +697,7 @@ function Invoke-ADGroupMembershipMonitoring
                             {
                                 # only send e-mail for each group if 'OneReport' is not specified
 
-                                $mailParam = @{
+                                $paramMailMessage = @{
                                     To         = $EmailTo
                                     From       = $EmailFrom
                                     Subject    = $EmailSubject
@@ -708,7 +708,7 @@ function Invoke-ADGroupMembershipMonitoring
                                     Credential = $EmailCredential
                                 }
 
-                                Send-MailMessage @mailParam -UseSsl -BodyAsHtml
+                                Send-MailMessage @paramMailMessage -UseSsl -BodyAsHtml
 
                                 Write-Verbose -Message "[$ScriptName][Process] $item - Email Sent."
                             }
@@ -777,7 +777,7 @@ function Invoke-ADGroupMembershipMonitoring
                     $EmailSubject = "[AD Group Membership Monitoring] Membership Report"
                 }
 
-                $mailParam = @{
+                $paramMailMessage = @{
                     To          = $EmailTo
                     From        = $EmailFrom
                     Subject     = $EmailSubject
@@ -789,7 +789,7 @@ function Invoke-ADGroupMembershipMonitoring
                     Attachments = $Attachments
                 }
 
-                Send-MailMessage @mailParam -UseSsl -BodyAsHtml
+                Send-MailMessage @paramMailMessage -UseSsl -BodyAsHtml
 
                 foreach ($a in $Attachments)
                 {
