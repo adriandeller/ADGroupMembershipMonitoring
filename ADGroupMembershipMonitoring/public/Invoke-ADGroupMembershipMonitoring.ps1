@@ -2,15 +2,15 @@ function Invoke-ADGroupMembershipMonitoring
 {
     <#
     .DESCRIPTION
-        This script is monitoring group(s) in Active Directory and send an email when someone is changing the membership.
+        This function is monitoring group(s) in Active Directory and sends an email when someone is changing the membership.
         It will also report the Change History made for this/those group(s).
     .SYNOPSIS
-        This script is monitoring group(s) in Active Directory and send an email when someone is changing the membership.
+        This function is monitoring group(s) in Active Directory and sends an email when someone is changing the membership.
     .PARAMETER Group
         Specify the group(s) to query in Active Directory.
         You can also specify the 'DN','GUID','SID' or the 'Name' of your group(s).
         Using 'Domain\Name' will also work.
-.PARAMETER Recursive
+    .PARAMETER Recursive
         by default, search for group members with direct membership,
         Specify this switch and group members with indirect membership through group nesting will also be searched
     .PARAMETER SearchRoot
@@ -81,6 +81,7 @@ function Invoke-ADGroupMembershipMonitoring
         Created:     2019-10-05
         Updated:     2019-10-06
         Version:     0.1.1
+    .ExternalHelp ADGroupMembershipMonitoring-help.xml
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'Group')]
