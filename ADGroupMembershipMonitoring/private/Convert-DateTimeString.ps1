@@ -5,6 +5,7 @@ function Convert-DateTimeString
     param
     (
         [Parameter(Mandatory = $true)]
+        [Alias('DateTimeString,')]
         $String,
 
         [Parameter(Mandatory = $false)]
