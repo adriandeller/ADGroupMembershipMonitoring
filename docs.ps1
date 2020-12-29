@@ -1,24 +1,24 @@
 break
 
-Install-Module -Name platyPS -Scope CurrentUser
-Import-Module -Name platyPS
+Install-Module -Name platyPS -Scope CurrentUser -Force
+Import-Module platyPS -Force
 
-$ModuleName = 'ADGroupMembershipMonitoring'
+$Module = Split-Path -Path $PWD -Leaf
 
-Import-Module -Name .\$ModuleName -Force
-Get-Module -Name $ModuleName
-Get-Command -Module $ModuleName
+# you should have module imported in the session
+Import-Module -Name .\$Module -Force
+Get-Command -Module $Module
 
 # Create help
-New-MarkdownHelp -Module $ModuleName -OutputFolder .\docs -WithModulePage
-New-MarkdownHelp -Module $ModuleName -OutputFolder .\docs #-Force
-New-ExternalHelp -Path .\docs -OutputPath .\$ModuleName\en-US\
+New-MarkdownHelp -Module $Module -OutputFolder .\docs -WithModulePage
+New-MarkdownHelp -Module $Module -OutputFolder .\docs #-Force
+New-ExternalHelp -Path .\docs -OutputPath .\$Module\en-US\
 
 # Update
 Update-MarkdownHelpModule -Path .\docs
-New-ExternalHelp -Path .\docs -OutputPath .\$ModuleName\en-US\ -Force
+New-ExternalHelp -Path .\docs -OutputPath .\$Module\en-US\ -Force
 
 # Testing Get-Help for module function
-Get-HelpPreview -Path .\$ModuleName\en-US\*.xml
-Get-Help Invoke-ADGroupMembershipMonitoring
-Get-Help Invoke-ADGroupMembershipMonitoring -Examples
+Get-HelpPreview -Path .\$Module\en-US\*.xml
+Get-Help Export-UniADLocalGroupToConfluence
+Get-Help Export-UniADLocalGroupToConfluence -Examples
