@@ -12,7 +12,7 @@
     RootModule        = 'ADGroupMembershipMonitoring.psm1'
 
     # Version number of this module.
-    ModuleVersion     = '1.0.0'
+    ModuleVersion     = '0.1.0'
 
     # Supported PSEditions
     # CompatiblePSEditions = @()
@@ -24,10 +24,10 @@
     Author            = 'Adrian Deller'
 
     # Company or vendor of this module
-    CompanyName       = 'Unknown'
+    CompanyName       = 'IT-Services, University of Basel'
 
     # Copyright statement for this module
-    Copyright         = '(c) 2019 Adrian Deller. All rights reserved.'
+    Copyright         = '(c) 2020 Adrian Deller. All rights reserved.'
 
     # Description of the functionality provided by this module
     Description       = 'This PowerShell module provides functions for monitoring Active Directory groups, tracking changes and send e-mail notifications on changes.'
@@ -94,9 +94,6 @@
 
         PSData = @{
 
-            # External dependent modules of this module
-            ExternalModuleDependencies = @('ActiveDirectory')
-
             # Tags applied to this module. These help with module discovery in online galleries.
             # Tags = @()
 
@@ -104,13 +101,22 @@
             # LicenseUri = ''
 
             # A URL to the main website for this project.
-            # ProjectUri = ''
+            ProjectUri = 'https://github.com/adriandeller/ADGroupMembershipMonitoring'
 
             # A URL to an icon representing this module.
             # IconUri = ''
 
             # ReleaseNotes of this module
-            # ReleaseNotes = ''
+            ReleaseNotes = 'https://github.com/adriandeller/ADGroupMembershipMonitoring/blob/master/CHANGELOG.md'
+
+            # Prerelease string of this module
+            # Prerelease = ''
+
+            # Flag to indicate whether the module requires explicit user acceptance for install/update/save
+            # RequireLicenseAcceptance = $false
+
+            # External dependent modules of this module
+            ExternalModuleDependencies = @('ActiveDirectory')
 
         } # End of PSData hashtable
 
