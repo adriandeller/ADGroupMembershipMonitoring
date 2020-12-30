@@ -198,34 +198,17 @@ function Invoke-ADGroupMembershipMonitoring
 
     Begin
     {
-        $StopWatch = [System.Diagnostics.Stopwatch]::StartNew()
-
         $ScriptName = $MyInvocation.MyCommand.Name
 
-        $PSDefaultParameterValues = @{
-            'Convert-DateTimeString:Verbose' = $false
-            'Get-ADComputer:Property' = 'DisplayName', 'PasswordExpired'
-            'Get-ADUser:Property' = 'DisplayName', 'PasswordExpired'
-        }
+        Write-Verbose -Message "[$ScriptName][Begin]"
 
-        # CSV columns
-        $ChangeHistoryCsvProperty = 'DateTime', 'State', 'DisplayName', 'Name', 'SamAccountName', 'DistinguishedName'
+        $StopWatch = [System.Diagnostics.Stopwatch]::StartNew()
 
-        # Report table columns
-        $MembershipChangeTableProperty = 'DateTime', 'State', 'Name', 'SamAccountName', 'DistinguishedName'
-        $ChangeHistoryTableProperty = 'DateTime', 'State', 'Name', 'SamAccountName', 'DistinguishedName'
-        $MembersTableProperty = 'Name', 'SamAccountName', 'ObjectClass'
-
-        if ($ExtendedProperty)
-        {
-            $MembersTableProperty += 'Enabled', 'PasswordExpired', 'DistinguishedName'
-        }
+        $GroupList = New-Object System.Collections.Generic.List[Object]
 
         try
         {
-            # Import default values from config file
-            $Configuration = Import-PowerShellDataFile -Path "$PSScriptRoot\..\config\configuration.psd1" -ErrorAction Stop
-
+            #Region Import Modules
             $RequiredModules = 'ActiveDirectory'
 
             foreach ($ModuleName in $RequiredModules)
@@ -233,13 +216,38 @@ function Invoke-ADGroupMembershipMonitoring
                 if (Get-Module -ListAvailable -Name $ModuleName -Verbose:$false)
                 {
                     Import-Module -Name $ModuleName -Verbose:$false
-                    Write-Verbose -Message "[$ScriptName][Begin] Imported module '$ModuleName'"
+                    Write-Verbose -Message "    [+] Imported module '$ModuleName'"
                 }
                 else
                 {
-                    Write-Warning "[$ScriptName][Begin] Module '$ModuleName' does not exist"
+                    Write-Warning "    [-] Module '$ModuleName' does not exist"
                     return
                 }
+            }
+            #EndRegion
+
+            #Region Configuration
+            # Import default values from config file
+            $Configuration = Get-Configuration -Verbose
+            Write-Verbose -Message "    [+] Imported configuration"
+
+            $PSDefaultParameterValues = @{
+                'Convert-DateTimeString:Verbose' = $false
+                'Get-ADComputer:Property' = 'DisplayName', 'PasswordExpired'
+                'Get-ADUser:Property' = 'DisplayName', 'PasswordExpired'
+            }
+
+            # CSV columns
+            $ChangeHistoryCsvProperty = 'DateTime', 'State', 'DisplayName', 'Name', 'SamAccountName', 'DistinguishedName'
+
+            # Report table columns
+            $MembershipChangeTableProperty = 'DateTime', 'State', 'Name', 'SamAccountName', 'DistinguishedName'
+            $ChangeHistoryTableProperty = 'DateTime', 'State', 'Name', 'SamAccountName', 'DistinguishedName'
+            $MembersTableProperty = 'Name', 'SamAccountName', 'ObjectClass'
+
+            if ($PSBoundParameters['ExtendedProperty'])
+            {
+                $MembersTableProperty += 'Enabled', 'PasswordExpired', 'DistinguishedName'
             }
 
             if ($PSBoundParameters['EmailSubjectPrefix'])
@@ -250,36 +258,6 @@ function Invoke-ADGroupMembershipMonitoring
             {
                 $EmailSubjectPrefix = $Configuration.Email.EmailSubjectPrefix
             }
-
-            # Create the folders if not present
-            if (-not (Test-Path -Path $Path))
-            {
-                Write-Verbose -Message "[$ScriptName][Begin] Creating the folder for data storage: $Path"
-                New-Item -Path $Path -ItemType Directory -ErrorAction Stop | Out-Null
-
-                if (-not (Test-Path -Path $Path -PathType Container) )
-                {
-                    throw "The folder '$Path' does not exist"
-                }
-            }
-
-            $Subfolders = $Configuration.Folder.Keys
-
-            foreach ($Subfolder in $Subfolders)
-            {
-                $SubfolderPath = $Path + "\{0}" -f $Configuration.Folder[$Subfolder]
-
-                New-Variable -Name ('ScriptPath{0}' -f $Subfolder) -Value $SubfolderPath
-
-                if (-not(Test-Path -Path $SubfolderPath))
-                {
-                    Write-Verbose -Message "[$ScriptName][Begin] Creating the '$Subfolder' folder: $SubfolderPath"
-                    $null = New-Item -Path $SubfolderPath -ItemType Directory -ErrorAction Stop
-                }
-
-            }
-
-            $GroupList = New-Object System.Collections.Generic.List[Object]
 
             # Set the Date and Time formats
             $ChangesDateTimeFormat = 's'                         # format for export to CSV files
@@ -311,6 +289,51 @@ function Invoke-ADGroupMembershipMonitoring
             "th {border-width:1px; padding:3px; border-style:solid; border-color:black; background-color:`"#C0C0C0`"}" +
             "td {border-width:1px; padding-right:2px; padding-left:2px; padding-top:0px; padding-bottom:0px; border-style:solid; border-color:black; background-color:white}" +
             "</style>"
+            #EndRegion
+
+            #Region Folders for data storage
+            # Create the folders if not present
+            if (-not (Test-Path -Path $Path))
+            {
+                $null = New-Item -Path $Path -ItemType Directory -ErrorAction Stop
+
+                if (-not (Test-Path -Path $Path -PathType Container) )
+                {
+                    throw "The folder '$Path' does not exist"
+                }
+
+                Write-Verbose -Message "    [+] Created folder for data storage '$Path'"
+            }
+            else
+            {
+                Write-Verbose -Message "    [i] Folder for data storage exists: '$Path'"
+            }
+
+            $Subfolders = $Configuration.Folder.Keys
+
+            foreach ($Subfolder in $Subfolders)
+            {
+                $SubfolderPath = $Path + "\{0}" -f $Configuration.Folder[$Subfolder]
+
+                New-Variable -Name ('ScriptPath{0}' -f $Subfolder) -Value $SubfolderPath
+
+                if (-not (Test-Path -Path $SubfolderPath))
+                {
+                    $null = New-Item -Path $SubfolderPath -ItemType Directory -ErrorAction Stop
+
+                    if (-not (Test-Path -Path $SubfolderPath -PathType Container) )
+                    {
+                        throw "The folder '$SubfolderPath' does not exist"
+                    }
+
+                    Write-Verbose -Message "    [+] Created subfolder '$SubfolderPath'"
+                }
+                else
+                {
+                    Write-Verbose -Message "    [i] Subfolder exists: '$SubfolderPath'"
+                }
+            }
+            #EndRegion
         }
         catch
         {
@@ -452,7 +475,7 @@ function Invoke-ADGroupMembershipMonitoring
 
                     # Look for Group
                     $GroupName = Get-ADGroup @GroupSplatting -Properties * -ErrorAction Continue -ErrorVariable ErrorProcessGetADGroup
-                    Write-Verbose -Message "    [*] Extracting Domain Name from $($GroupName.CanonicalName)"
+                    #Write-Verbose -Message "    [*] Extracting Domain Name from $($GroupName.CanonicalName)"
                     $DomainName = ($GroupName.CanonicalName -split '/')[0]
                     $RealGroupName = $GroupName.Name
 
@@ -507,7 +530,7 @@ function Invoke-ADGroupMembershipMonitoring
 
                         if (-not (Test-Path -Path $CurrentGroupMembershipFilePath))
                         {
-                            Write-Verbose -Message "    [i] The following file did not exist: $CurrentGroupMembershipFilePath"
+                            Write-Verbose -Message "    [i] The file does not exist: $CurrentGroupMembershipFilePath"
 
                             $Members | Export-Csv -Path $CurrentGroupMembershipFilePath -NoTypeInformation -Encoding Unicode
 
@@ -515,7 +538,7 @@ function Invoke-ADGroupMembershipMonitoring
                         }
                         else
                         {
-                            Write-Verbose -Message "    [i] The following file exists: $CurrentGroupMembershipFilePath"
+                            Write-Verbose -Message "    [i] The file exists: $CurrentGroupMembershipFilePath"
                         }
 
                         $ImportCSV = Import-Csv -Path $CurrentGroupMembershipFilePath -ErrorAction Stop -ErrorVariable ErrorProcessImportCSV
@@ -789,7 +812,7 @@ function Invoke-ADGroupMembershipMonitoring
                         }
                         else
                         {
-                            Write-Verbose -Message "    [*] No Change"
+                            Write-Verbose -Message "    [i] Found no group membership changes"
                         }
                     }
                     else
@@ -862,7 +885,9 @@ function Invoke-ADGroupMembershipMonitoring
     End
     {
         $StopWatch.Stop()
-        Write-Verbose -Message ("[i] Elapsed time: {0:d2}:{1:d2}:{2:d2}" -f $StopWatch.Elapsed.Hours, $StopWatch.Elapsed.Minutes, $StopWatch.Elapsed.Seconds)
-        Write-Verbose -Message "[$ScriptName][End] Script Completed"
+
+        Write-Verbose -Message "[$ScriptName][End]"
+        Write-Verbose -Message ("    [i] Elapsed time: {0:d2}:{1:d2}:{2:d2}" -f $StopWatch.Elapsed.Hours, $StopWatch.Elapsed.Minutes, $StopWatch.Elapsed.Seconds)
+        Write-Verbose -Message "    [i] Script Completed"
     }
 }
