@@ -49,10 +49,18 @@ Scheduled task:
 
 ## Features
 
-### The first time you run the script
-The function is creating folders if they not exists:
+### Configuration (Defaults)
+Default values for common settings are saved in a PSD1 file in the module directory.
+``` powershell
+.\config\configuration.psd1
+```
+
+### Data storage
+The function will create folders if they not exists:
  * **Current** directory: the current AD group membership is queried and saved in the file (it won't touch the file if it's the same membership) on each run of the function.
  * **History** directory: contains the list of changes from the past. One file per AD Group per domain, if multiple changes occur, the function will append the change in the same file.
+ * **HTML** directory:
+ * **OneReport** directory:
 
 
 ### Comparing
@@ -60,7 +68,7 @@ The membership of each group is saved in a CSV file "DOMAIN_GROUPNAME-membership
 If the file does not exist, the script will create one, so the next time it will be able to compare the  membership with this file.
 
 ### Change History
-Each time a change is detected (Add or Remove an Account (Nested or Not)) a CSV file will be generated with the following name: "DOMAIN_GROUPNAME-ChangesHistory-yyyyMMdd-hhmmss.csv"
+Each time a change is detected (Add or Remove an Account (Nested or Not)) a CSV file will be generated with the following name: "DOMAIN_GROUPNAME-ChangeHistory.csv"
 
 When generating the HTML Report, the script will add this Change History to the Email (if there is one to add)
 
