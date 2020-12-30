@@ -165,6 +165,10 @@ function Invoke-ADGroupMembershipMonitoring
         [string]
         $EmailEncoding = 'Default',
 
+        [Parameter(HelpMessage = 'You can provide credentials for the Mail Server')]
+        [System.Management.Automation.PSCredential]
+        $EmailCredential = [System.Management.Automation.PSCredential]::Empty,
+
         [Parameter()]
         [Switch]
         $SaveAsHTML,
@@ -189,11 +193,7 @@ function Invoke-ADGroupMembershipMonitoring
         [Alias('OutputPath', 'FolderPath')]
         [ValidateNotNullOrEmpty()]
         [string]
-        $Path,
-
-        [Parameter()]
-        [System.Management.Automation.PSCredential]
-        $EmailCredential = [System.Management.Automation.PSCredential]::Empty
+        $Path
     )
 
     Begin
