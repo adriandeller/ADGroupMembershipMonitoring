@@ -24,12 +24,12 @@ function Convert-DateTimeString
     {
         try
         {
-            $Result = Get-Date $DateTimeString -Format $OutputFormat -ErrorAction Stop
-            Write-Verbose "Successful usging 'Get-Date'"
+            $Result = Get-Date $String -Format $OutputFormat -ErrorAction Stop
+            Write-Verbose "Successful parsing usging 'Get-Date'"
         }
         catch
         {
-            Write-Verbose "Failed format usging 'Get-Date'"
+            Write-Verbose "Failed parsing using 'Get-Date'"
             $Result = $false
         }
 
@@ -43,13 +43,13 @@ function Convert-DateTimeString
             {
                 try
                 {
-                    $Result = [datetime]::ParseExact($DateTimeString, $Format, $null)
-                    Write-Verbose "Successful format: $Format"
+                    $Result = [datetime]::ParseExact($String, $Format, $null)
+                    Write-Verbose "Successful parsing using format '$Format'"
                     break
                 }
                 catch
                 {
-                    Write-Verbose "Failed format: $Format"
+                    Write-Verbose "Failed parsing using format '$Format'"
                     $Result = $false
                 }
 
@@ -57,7 +57,7 @@ function Convert-DateTimeString
                 [ref]$Result = Get-Date
 
                 [DateTime]::TryParseExact(
-                    $DateTimeString,
+                    $String,
                     $Format,
                     [System.Globalization.DateTimeFormatInfo]::InvariantInfo,
                     [System.Globalization.DateTimeStyles]::None,
