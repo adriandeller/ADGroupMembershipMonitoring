@@ -2,7 +2,7 @@
 
 ## 0.1.0 - (2021-xx-xx)
 
-** Added **
+**Added**
 
 - new PowerShell Script Module, main function code is based on script Monitor-ADGroupMemberShip.ps1 version 2.0.7 (2019.08.23)
 - add parameter 'Recursive' for indirect membership through group nesting
