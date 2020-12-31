@@ -1,6 +1,6 @@
-## UNIBAS.WSG.Tools Release History
+## ADGroupMembershipMonitoring Release History
 
-## 0.1.0 - (2020-12-xx)
+## 0.1.0 - (2021-xx-xx)
 
 ** Added **
 
@@ -9,6 +9,7 @@
 - add parameter 'EmailSubjectPrefix'
 - add parameter 'Path'
 - add parameter 'GroupFilter'
+- add parameter 'Recursive'
 - add Computer, Group and User objects as possible group members for monitoring
 
 **Changed**
