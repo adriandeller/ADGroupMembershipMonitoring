@@ -10,3 +10,4 @@
 - [x] add parameter 'GroupFilter'
 - [x] add support for Computer and Group object as member of AD Groups
 - [ ] add Current Member Count, Added Member count, Removed Member Count
+- [ ] add column to indicate if it's a direct/indirect member of the group, when using the 'Recursive' parameter
