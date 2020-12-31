@@ -3,7 +3,7 @@
 - [ ] add parameter 'LDAPFilter' to gather AD Groups using an LDAP Filter
 - [ ] add parameter 'NoSummary' to make the Group summary Optional (info: Description,DN,CanonicalName,SID, Scope, Type)
 - [ ] add parameter 'EmailToSelf' to send email to the group's mail-address
-- [ ] add parameter 'EmailToManger' send email to the group's manager(s) mail-address
+- [ ] add parameter 'EmailToManger' send email to the group's manager(s) mail-address (related attributes: managedBy, msExchCoManagedByLink)
 - [x] add parameter 'Recursive' for indirect membership through group nesting
 - [x] add parameter 'EmailSubjectPrefix'
 - [x] add parameter 'Path ('OutputPath')
