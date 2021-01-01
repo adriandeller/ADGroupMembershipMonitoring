@@ -8,4 +8,8 @@
         HTML      = 'HTML'
         OneReport = 'OneReport'
     }
+    CSV = @{
+        ChangeHistoryProperty = 'DateTime', 'State', 'Name', 'SamAccountName', 'ObjectClass'
+        MembershipProperty    = 'Name', 'SamAccountName', 'ObjectClass'
+    }
 }
