@@ -233,18 +233,18 @@ function Invoke-ADGroupMembershipMonitoring
         try
         {
             #Region Import Modules
-            $RequiredModules = 'ActiveDirectory'
+            $RequiredModules = 'ActiveDirectory', 'PSFramework'
 
-            foreach ($ModuleName in $RequiredModules)
+            foreach ($ModuleItem in $RequiredModules)
             {
-                if (Get-Module -ListAvailable -Name $ModuleName -Verbose:$false)
+                if (Get-Module -ListAvailable -Name $ModuleItem -Verbose:$false)
                 {
-                    Import-Module -Name $ModuleName -Verbose:$false
-                    Write-Verbose -Message "    [+] Imported module '$ModuleName'"
+                    Import-Module -Name $ModuleItem -Verbose:$false
+                    Write-Verbose -Message "    [+] Imported module '$ModuleItem'"
                 }
                 else
                 {
-                    Write-Warning "    [-] Module '$ModuleName' does not exist"
+                    Write-Warning "    [-] Module '$ModuleItem' does not exist"
                     return
                 }
             }
@@ -252,8 +252,14 @@ function Invoke-ADGroupMembershipMonitoring
 
             #Region Configuration
             # Import default values from config file
-            $Configuration = Get-Configuration -Verbose
-            Write-Verbose -Message "    [+] Imported configuration"
+            #$Configuration = Get-Configuration -Verbose
+            #Write-Verbose -Message "    [+] Imported configuration"
+
+            # Using PSFramework for configuration
+            if (-not (Get-PSFConfig -Module $ModuleName))
+            {
+                throw 'Unable to get configuration data using PSFramework'
+            }
 
             if ($PSBoundParameters['EmailSubjectPrefix'])
             {
@@ -261,20 +267,18 @@ function Invoke-ADGroupMembershipMonitoring
             }
             else
             {
-                $EmailSubjectPrefix = $Configuration.Email.EmailSubjectPrefix
+                $EmailSubjectPrefix = Get-PSFConfigValue -FullName  "$ModuleName.Email.EmailSubjectPrefix"
             }
 
             # CSV columns
-            $ChangeHistoryCsvProperty = 'DateTime', 'State', 'DisplayName', 'Name', 'SamAccountName', 'ObjectClass', 'DistinguishedName'
-            #$ChangeHistoryCsvProperty = $Configuration.CSV.ChangeHistoryProperty
-            $MembershipCsvProperty    = 'Name', 'SamAccountName', 'ObjectClass', 'Mail', 'UserPrincipalName'
-            #$MembershipCsvProperty = $Configuration.CSV.MembershipProperty
+            $ChangeHistoryCsvProperty = Get-PSFConfigValue -FullName  "$ModuleName.CSV.ChangeHistoryProperty"
+            $MembershipCsvProperty = Get-PSFConfigValue -FullName  "$ModuleName.CSV.MembershipProperty"
 
             # Report table columns
             $GroupSummaryTableProperty = 'SamAccountName', 'Description', 'DistinguishedName', 'CanonicalName', 'SID', 'GroupScope', 'GroupCategory', 'gidNumber'
             $MembershipChangeTableProperty = 'DateTime', 'State', 'Name', 'SamAccountName', 'ObjectClass', 'DistinguishedName'
-            $ChangeHistoryTableProperty = 'DateTime', 'State', 'Name', 'SamAccountName', 'ObjectClass'
-            $MembersTableProperty = 'Name', 'SamAccountName', 'ObjectClass', 'Mail'
+            $ChangeHistoryTableProperty = 'DateTime', 'State', 'Name', 'SamAccountName', 'ObjectClass'#, 'Nested'
+            $MembersTableProperty = 'Name', 'SamAccountName', 'ObjectClass', 'Mail'#, 'Nested'
 
             $SpecialProperty = 'DateTime', 'State'
 
@@ -352,13 +356,13 @@ function Invoke-ADGroupMembershipMonitoring
                 Write-Verbose -Message "    [i] Folder for data storage exists: '$Path'"
             }
 
-            $Subfolders = $Configuration.Folder.Keys
+            $Subfolders = Get-PSFConfig -FullName  "$ModuleName.Folder.*"
 
             foreach ($Subfolder in $Subfolders)
             {
-                $SubfolderPath = $Path + "\{0}" -f $Configuration.Folder[$Subfolder]
-
-                New-Variable -Name ('ScriptPath{0}' -f $Subfolder) -Value $SubfolderPath
+                $SubfolderPath     = $Path + "\{0}" -f (Get-PSFConfigValue -FullName $Subfolder.FullName)
+                $SubfolderVariable = $Subfolder.FullName.Split('.')[-1]
+                New-Variable -Name ('ScriptPath{0}' -f $SubfolderVariable) -Value $SubfolderPath
 
                 if (-not (Test-Path -Path $SubfolderPath))
                 {
@@ -727,7 +731,7 @@ function Invoke-ADGroupMembershipMonitoring
                                         {
                                             if ($ADObjectDetails)
                                             {
-                                                $PropertyValue = $ADObjectDetails.$PropertyName
+                                                $PropertyValue = if ($ADObjectDetails.$PropertyName) { $ADObjectDetails.$PropertyName }
                                                 #Write-Verbose "$PropertyName : $PropertyValue"
                                             }
                                             else
@@ -740,7 +744,7 @@ function Invoke-ADGroupMembershipMonitoring
                                                 }
                                                 else
                                                 {
-                                                    Write-Verbose "No data in CSV file for property '$PropertyName'"
+                                                    #Write-Verbose "No data in CSV file for property '$PropertyName'"
                                                 }
                                             }
                                         }
@@ -814,7 +818,7 @@ function Invoke-ADGroupMembershipMonitoring
 
                             foreach ($PropertyName in $MembersTableProperty)
                             {
-                                $PropertyValue = $MemberItem.$PropertyName
+                                $PropertyValue = if ($MemberItem.$PropertyName) { $MemberItem.$PropertyName }
                                 $ListItem.Add($PropertyName, $PropertyValue)
                             }
 
@@ -833,12 +837,12 @@ function Invoke-ADGroupMembershipMonitoring
                             {
                                 'SID'
                                 {
-                                    $PropertyValue = $ADGroup.$PropertyName.value
+                                    $PropertyValue = if ($ADGroup.$PropertyName.value) { $ADGroup.$PropertyName.value }
                                     $GroupSummary.Add($PropertyName, $PropertyValue)
                                 }
                                 Default
                                 {
-                                    $PropertyValue = $ADGroup.$PropertyName
+                                    $PropertyValue = if ($ADGroup.$PropertyNam) { $ADGroup.$PropertyNam }
                                     $GroupSummary.Add($PropertyName, $PropertyValue)
                                 }
                             }

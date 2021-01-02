@@ -1,12 +1,20 @@
+$Script:ModuleRoot = $PSScriptRoot
+$Script:ModuleName = Split-Path $PSScriptRoot -Leaf
+
 # Dot source public/private functions
-$public  = @(Get-ChildItem -Path (Join-Path -Path $PSScriptRoot -ChildPath 'public/*.ps1')  -Recurse -ErrorAction Stop)
-$private = @(Get-ChildItem -Path (Join-Path -Path $PSScriptRoot -ChildPath 'private/*.ps1') -Recurse -ErrorAction Stop)
-foreach ($import in @($public + $private)) {
-    try {
-        . $import.FullName
+$public  = @(Get-ChildItem -Path (Join-Path -Path $ModuleRoot -ChildPath 'public\*.ps1')  -ErrorAction Stop)
+$private = @(Get-ChildItem -Path (Join-Path -Path $ModuleRoot -ChildPath 'private\*.ps1') -ErrorAction Stop)
+$config  = @(Get-ChildItem -Path (Join-Path -Path $ModuleRoot -ChildPath 'configuration\*.ps1') -ErrorAction Stop)
+
+foreach ($Import in @($public + $private + $config))
+{
+    try
+    {
+        . $Import.FullName
     }
-    catch {
-        throw "Unable to dot source [$($import.FullName)]"
+    catch
+    {
+        throw "Unable to dot source '$($Import.FullName)'"
     }
 }
 
