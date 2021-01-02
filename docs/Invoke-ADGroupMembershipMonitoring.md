@@ -16,25 +16,28 @@ This function is monitoring group(s) in Active Directory and sends an email when
 ```
 Invoke-ADGroupMembershipMonitoring -Group <String[]> [-Recursive] [-Server <String>] -EmailFrom <String>
  -EmailTo <String[]> -EmailServer <String> [-EmailPort <String>] [-EmailSubjectPrefix <String>]
- [-EmailEncoding <String>] [-SaveAsHTML] [-IncludeMembers] [-AlwaysReport] [-OneReport] [-ExtendedProperty]
- -Path <String> [-EmailCredential <PSCredential>] [<CommonParameters>]
+ [-EmailEncoding <String>] [-EmailCredential <PSCredential>] [-SaveAsHTML] [-IncludeMembers] [-ExcludeChanges]
+ [-ExcludeHistory] [-ExcludeSummary] [-AlwaysExport] [-AlwaysReport] [-OneReport] [-ExtendedProperty]
+ -Path <String> [<CommonParameters>]
 ```
 
-### OU
+### ADFilter
 ```
 Invoke-ADGroupMembershipMonitoring [-Recursive] -SearchRoot <String[]> [-SearchScope <String>]
  [-GroupScope <String>] [-GroupType <String>] [-GroupFilter <String>] [-Server <String>] -EmailFrom <String>
  -EmailTo <String[]> -EmailServer <String> [-EmailPort <String>] [-EmailSubjectPrefix <String>]
- [-EmailEncoding <String>] [-SaveAsHTML] [-IncludeMembers] [-AlwaysReport] [-OneReport] [-ExtendedProperty]
- -Path <String> [-EmailCredential <PSCredential>] [<CommonParameters>]
+ [-EmailEncoding <String>] [-EmailCredential <PSCredential>] [-SaveAsHTML] [-IncludeMembers] [-ExcludeChanges]
+ [-ExcludeHistory] [-ExcludeSummary] [-AlwaysExport] [-AlwaysReport] [-OneReport] [-ExtendedProperty]
+ -Path <String> [<CommonParameters>]
 ```
 
 ### File
 ```
 Invoke-ADGroupMembershipMonitoring [-Recursive] -File <String[]> [-Server <String>] -EmailFrom <String>
  -EmailTo <String[]> -EmailServer <String> [-EmailPort <String>] [-EmailSubjectPrefix <String>]
- [-EmailEncoding <String>] [-SaveAsHTML] [-IncludeMembers] [-AlwaysReport] [-OneReport] [-ExtendedProperty]
- -Path <String> [-EmailCredential <PSCredential>] [<CommonParameters>]
+ [-EmailEncoding <String>] [-EmailCredential <PSCredential>] [-SaveAsHTML] [-IncludeMembers] [-ExcludeChanges]
+ [-ExcludeHistory] [-ExcludeSummary] [-AlwaysExport] [-AlwaysReport] [-OneReport] [-ExtendedProperty]
+ -Path <String> [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -223,7 +226,7 @@ Accept wildcard characters: False
 
 ```yaml
 Type: String
-Parameter Sets: OU
+Parameter Sets: ADFilter
 Aliases:
 
 Required: False
@@ -238,7 +241,7 @@ Accept wildcard characters: False
 
 ```yaml
 Type: String
-Parameter Sets: OU
+Parameter Sets: ADFilter
 Aliases:
 Accepted values: Global, Universal, DomainLocal
 
@@ -254,7 +257,7 @@ Accept wildcard characters: False
 
 ```yaml
 Type: String
-Parameter Sets: OU
+Parameter Sets: ADFilter
 Aliases:
 Accepted values: Security, Distribution
 
@@ -345,7 +348,7 @@ You must specify at least one Active Directory OU
 
 ```yaml
 Type: String[]
-Parameter Sets: OU
+Parameter Sets: ADFilter
 Aliases: SearchBase
 
 Required: True
@@ -360,7 +363,7 @@ Accept wildcard characters: False
 
 ```yaml
 Type: String
-Parameter Sets: OU
+Parameter Sets: ADFilter
 Aliases:
 Accepted values: Base, OneLevel, Subtree
 
@@ -378,6 +381,66 @@ Accept wildcard characters: False
 Type: String
 Parameter Sets: (All)
 Aliases: DomainController, Service
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -AlwaysExport
+{{ Fill AlwaysExport Description }}
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -ExcludeChanges
+{{ Fill ExcludeChanges Description }}
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -ExcludeHistory
+{{ Fill ExcludeHistory Description }}
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -ExcludeSummary
+{{ Fill ExcludeSummary Description }}
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: (All)
+Aliases:
 
 Required: False
 Position: Named
