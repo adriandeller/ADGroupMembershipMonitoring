@@ -1,5 +1,4 @@
 # Set defaults
-Set-PSFConfig -Module $ModuleName -Name Foo.Bar -Value 42 -Initialize -Validation integer -Description "Setting that does a few things"
 Set-PSFConfig -Module $ModuleName -Name "Folder.Current" -Value 'Current' -Initialize -Validation string -Description ''
 Set-PSFConfig -Module $ModuleName -Name "Folder.History" -Value 'History' -Initialize -Validation string -Description ''
 Set-PSFConfig -Module $ModuleName -Name "Folder.HTML" -Value 'HTML' -Initialize -Validation string -Description ''

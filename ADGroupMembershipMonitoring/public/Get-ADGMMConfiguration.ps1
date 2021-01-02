@@ -14,7 +14,7 @@ function Get-ADGMMConfiguration
     {
         try
         {
-            Get-PSFConfig -Module $Script:ModuleName | Select-Object -Property Module,Name,Value
+            Get-PSFConfig -Module $Script:ModuleName | Select-Object -Property Module,Name,Value,Description
         }
         catch {
             throw $_.Exception.Message
