@@ -1,37 +1,96 @@
 function Get-ADObjectDetails
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = 'ADObject')]
 
     param
     (
-        [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
+        [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'Property')]
         [string]
         $SamAccountName,
 
-        [Parameter(ValueFromPipelineByPropertyName)]
+        [Parameter(ValueFromPipelineByPropertyName, ParameterSetName = 'Property')]
         [AllowNull()]
         [string]
-        $ObjectClass
+        $SID,
+
+        [Parameter(ValueFromPipelineByPropertyName, ParameterSetName = 'Property')]
+        [AllowNull()]
+        [string]
+        $ObjectClass,
+
+        [Parameter(Mandatory, ValueFromPipeline, ParameterSetName = 'ADObject')]
+        [Microsoft.ActiveDirectory.Management.ADObject]
+        $ADObject
     )
 
     Begin
     {
+        $DomainSidLookupTable = (Get-ADForest).Domains | Get-ADDomain | ForEach-Object -Begin { $ht = @{} } -Process {
+            $ht[$PSItem.DomainSID.Value] = $PSItem
+        } -End { return $ht }
     }
     Process
     {
-        if ([string]::IsNullOrEmpty($ObjectClass))
+        #Write-Verbose ("ParameterSetName: {0}" -f $PSCmdlet.ParameterSetName)
+
+        if ($PSCmdlet.ParameterSetName -eq 'ADObject')
         {
+            # Get Domain (FQDN) of the AD object by the Domain SID
+            $DomainSid = $ADObject.SID.AccountDomainSid.Value
+            $Server    = $DomainSidLookupTable[$DomainSid].DNSRoot
+
+            $SamAccountName = $ADObject.SamAccountName
+            $SID            = $ADObject.SID.Value
+            $ObjectClass    = $ADObject.ObjectClass
+        }
+        else
+        {
+            # collect required AD object properties (objectClass and SID) for further AD query
+
+            # Get Global Catalog DC
+            #$ServerGC = (Get-ADForest).GlobalCatalogs | Get-Random -Count 1
+            $ServerGC = (Get-ADDomainController -Discover -Service GlobalCatalog).Hostname
+            $Server = '{0}:3268' -f $ServerGC.Value
+
             try
             {
-                $ObjectClass = (Get-ADObject -Filter "SamAccountName -eq '$SamAccountName'").ObjectClass
+                if ([string]::IsNullOrEmpty($PSBoundParameters['ObjectClas']))
+                {
+                    $ADObjectResult = @(Get-ADObject -Filter "SamAccountName -eq '$SamAccountName'" -Server $Server -Property objectSid)
 
-                if ($ObjectClass)
-                {
-                    Write-Verbose "Found AD object with 'ObjectClass' = '$ObjectClass'"
-                }
-                else
-                {
-                    throw "Unable to identify 'ObjectClass' of '$SamAccountName'"
+                    Write-Verbose "SID: $SID"
+
+                    if ($ADObjectResult.Count -eq 1)
+                    {
+                        $ObjectClass = $ADObjectResult.ObjectClass
+                        $SID         = $ADObjectResult.objectSid.Value
+                    }
+                    elseif ($ADObjectResult.Count -gt 1)
+                    {
+                        $ADObjectResult = ($ADObjectResult | Where-Object { $_.objectSid.Value -eq $SID})
+                        $ObjectClass    = $ADObjectResult.ObjectClass
+                        $SID            = $ADObjectResult.objectSid.Value
+
+                        if ($ObjectClass)
+                        {
+                            Write-Verbose "Found AD object by SID '$SID'"
+                        }
+                        else
+                        {
+                            Write-Error "Found multiple AD objects with SamAccountName '$SamAccountName'"
+                            return
+                        }
+                    }
+
+                    if ($ObjectClass)
+                    {
+                        Write-Verbose "Found AD object with ObjectClass '$ObjectClass'"
+                    }
+                    else
+                    {
+                        Write-Error "Unable to identify ObjectClass of '$SamAccountName'"
+                        return
+                    }
                 }
             }
             catch
@@ -41,27 +100,28 @@ function Get-ADObjectDetails
         }
 
         $ADObjectSplatting = @{
-            Filter          = "SamAccountName -eq '$SamAccountName'"
+            Filter      = "SID -eq '$SID'"
+            Server      = $Server
             ErrorAction = 'SilentlyContinue'
         }
 
-        $ADObject = switch ($ObjectClass)
+        $ADObjectReturn = switch ($ObjectClass)
         {
             'computer' { Get-ADComputer @ADObjectSplatting }
             'group' { Get-ADGroup @ADObjectSplatting }
             'user' { Get-ADUser @ADObjectSplatting }
-            Default { throw "Provided invalid value for 'ObjectClass'"}
+            #Default { throw "Provided invalid value for 'ObjectClass'"}
         }
 
-        if ($ADObject)
+        if ($ADObjectReturn)
         {
-            return $ADObject
+            return $ADObjectReturn
         }
         else
         {
-            throw "AD object '$SamAccountName' not found"
+            #throw "AD object '$SamAccountName' not found"
 
-            <#
+            #
             if ($PSBoundParameters['ErrorAction'] -eq 'Stop')
             {
                 throw "AD object '$SamAccountName' not found"
@@ -73,7 +133,7 @@ function Get-ADObjectDetails
                     #ObjectClass    = $ObjectClass
                 }
             }
-            #>
+            #
         }
     }
     End
