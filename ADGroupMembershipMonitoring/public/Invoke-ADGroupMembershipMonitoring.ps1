@@ -34,6 +34,8 @@ function Invoke-ADGroupMembershipMonitoring
             'Distribution'.
     .PARAMETER GroupFilter
         Specify the filter you want to use to find groups
+    .PARAMETER LDAPFilter
+        Specify the LDAP filter you want to use to find groups
     .PARAMETER File
         Specify the File where the Group are listed. DN, SID, GUID, or Domain\Name of the group are accepted.
     .PARAMETER EmailServer
@@ -101,12 +103,14 @@ function Invoke-ADGroupMembershipMonitoring
         [switch]
         $Recursive,
 
-        [Parameter(ParameterSetName = 'ADFilter', Mandatory, HelpMessage = 'You must specify at least one Active Directory OU')]
+        [Parameter(ParameterSetName = 'ADFilter', HelpMessage = 'You can specify multiple Active Directory OU')]
+        [Parameter(ParameterSetName = 'LDAPFilter', HelpMessage = 'You can specify multiple Active Directory OU')]
         [Alias('SearchBase')]
         [string[]]
         $SearchRoot,
 
         [Parameter(ParameterSetName = 'ADFilter')]
+        [Parameter(ParameterSetName = 'LDAPFilter')]
         [ValidateSet('Base', 'OneLevel', 'Subtree')]
         [string]
         $SearchScope,
@@ -121,9 +125,13 @@ function Invoke-ADGroupMembershipMonitoring
         [string]
         $GroupType,
 
-        [Parameter(ParameterSetName = 'ADFilter')]
+        [Parameter(ParameterSetName = 'ADFilter', Mandatory)]
         [string]
         $GroupFilter,
+
+        [Parameter(ParameterSetName = 'LDAPFilter', Mandatory)]
+        [string]
+        $LDAPFilter,
 
         [Parameter(ParameterSetName = 'File', Mandatory, HelpMessage = 'You must specify at least one file')]
         [ValidateNotNullOrEmpty()]
@@ -142,7 +150,7 @@ function Invoke-ADGroupMembershipMonitoring
         $File,
 
         [Parameter()]
-        [Alias('DomainController', 'Service')]
+        [Alias('Domain', 'DomainController', 'Service')]
         [string]
         $Server,
 
@@ -164,7 +172,7 @@ function Invoke-ADGroupMembershipMonitoring
         [string]
         $EmailPort = '25',
 
-        [Parameter(HelpMessage = 'You can provide a prefix for the E-Mail subject')]
+        [Parameter(HelpMessage = 'You can specify a prefix for the E-Mail subject')]
         [string]
         $EmailSubjectPrefix,
 
@@ -277,7 +285,7 @@ function Invoke-ADGroupMembershipMonitoring
             # Report table columns
             $GroupSummaryTableProperty = 'SamAccountName', 'Description', 'DistinguishedName', 'CanonicalName', 'SID', 'GroupScope', 'GroupCategory', 'gidNumber'
             $MembershipChangeTableProperty = 'DateTime', 'State', 'Name', 'SamAccountName', 'ObjectClass', 'DistinguishedName'
-            $ChangeHistoryTableProperty = 'DateTime', 'State', 'Name', 'SamAccountName', 'ObjectClass'#, 'Nested'
+            $ChangeHistoryTableProperty = 'DateTime', 'State', 'Name', 'SamAccountName', 'ObjectClass'
             $MembersTableProperty = 'Name', 'SamAccountName', 'ObjectClass', 'Mail'#, 'Nested'
 
             $SpecialProperty = 'DateTime', 'State'
@@ -403,13 +411,21 @@ function Invoke-ADGroupMembershipMonitoring
 
                     $SearchRootItemNumber = 1
 
-                    foreach ($SearchRootItem in $SearchRoot)
+                    foreach ($SearchRootItem in @($SearchRoot))
                     {
-                        # ADGroup Splatting
                         $ADGroupParams = @{ }
 
-                        Write-Verbose -Message "    [i] [$SearchRootItemNumber] SearchRoot: $SearchRootItem"
-                        $ADGroupParams.SearchBase = $SearchRootItem
+                        # SearchRoot parameter specified
+                        if ($SearchRootItem)
+                        {
+                            Write-Verbose -Message "    [i] [$SearchRootItemNumber] SearchRoot: $SearchRootItem"
+                            $ADGroupParams.SearchBase = $SearchRootItem
+                        }
+                        else
+                        {
+                            # when no values specified for SearchRoot parameter
+                            Write-Verbose -Message "    [i] [$SearchRootItemNumber] Search in whole AD domain"
+                        }
 
                         # Server parameter specified
                         if ($PSBoundParameters['Server'])
@@ -475,7 +491,68 @@ function Invoke-ADGroupMembershipMonitoring
                         {
                             foreach ($GroupSearchItem in $GroupSearch)
                             {
-                                #$null = $GroupList.Add($GroupSearchItem.DistinguishedName)
+                                $null = $GroupList.Add($GroupSearchItem)
+                            }
+                        }
+
+                        $SearchRootItemNumber++
+                    }
+                }
+                'LDAPFilter'
+                {
+                    Write-Verbose -Message "[*] Using ParameterSet 'LDAPFilter'"
+
+                    $SearchRootItemNumber = 1
+
+                    foreach ($SearchRootItem in @($SearchRoot))
+                    {
+                        $ADGroupParams = @{ }
+
+                        # SearchRoot parameter specified
+                        if ($SearchRootItem)
+                        {
+                            Write-Verbose -Message "    [i] [$SearchRootItemNumber] SearchRoot: $SearchRootItem"
+                            $ADGroupParams.SearchBase = $SearchRootItem
+                        }
+                        else
+                        {
+                            # when no values specified for SearchRoot parameter
+                            Write-Verbose -Message "    [i] [$SearchRootItemNumber] Search in whole AD domain"
+                        }
+
+                        # Server parameter specified
+                        if ($PSBoundParameters['Server'])
+                        {
+                            Write-Verbose -Message "    [i] [$SearchRootItemNumber] Server: $Server"
+                            $ADGroupParams.Server = $Server
+                        }
+
+                        # SearchScope parameter specified
+                        if ($PSBoundParameters['SearchScope'])
+                        {
+                            Write-Verbose -Message "    [i] [$SearchRootItemNumber] SearchScope: $SearchScope"
+                            $ADGroupParams.SearchScope = $SearchScope
+                        }
+
+                        # LDAPFilter parameter specified
+                        if ($PSBoundParameters['LDAPFilter'])
+                        {
+                            Write-Verbose -Message "    [i] [$SearchRootItemNumber] LDAPFilter: $LDAPFilter"
+
+                            $ADGroupParams.LDAPFilter = $LDAPFilter
+                        }
+                        else
+                        {
+                            # probably obsolote since this ParameterSet is only triggered when a LDAPFilter is provided
+                            $ADGroupParams.LDAPFilter = '(objectClass=*)'
+                        }
+
+                        $GroupSearch = Get-ADGroup @ADGroupParams -ErrorAction Stop
+
+                        if ($GroupSearch)
+                        {
+                            foreach ($GroupSearchItem in $GroupSearch)
+                            {
                                 $null = $GroupList.Add($GroupSearchItem)
                             }
                         }
@@ -516,7 +593,7 @@ function Invoke-ADGroupMembershipMonitoring
             foreach ($GroupListItem in $GroupList)
             {
                 $Changes, $ADGroup, $ChangeList, $ChangeHistoryList, $MemberList = $null
-                $PreContent, $HtmlGroupSummary, $HtmlChangeList, $HtmlChangeHistoryList, $HtmlMemberList, $PostContent = $null
+                $PreContent, $HtmlGroupSummary, $HtmlChangeList, $HtmlChangeHistoryList, $HtmlMemberList = $null
 
                 try
                 {
@@ -548,11 +625,25 @@ function Invoke-ADGroupMembershipMonitoring
                     }
 
                     # Get Domain (FQDN) of the AD Group
-                    $DomainName = (Get-ADDomain -Identity $ADGroup.SID.AccountDomainSid.value -ErrorAction Stop).DNSRoot
+                    if ($ADGroup.SID.AccountDomainSid.value)
+                    {
+                        $DomainName = (Get-ADDomain -Identity $ADGroup.SID.AccountDomainSid.value -ErrorAction Stop).DNSRoot
+                    }
+                    elseif ($PSBoundParameters['Server'])
+                    {
+                        $DomainName = (Get-ADDomain -Server $Server -ErrorAction Stop).DNSRoot
+                    }
+                    else
+                    {
+                        $DomainName = (Get-ADDomain -ErrorAction Stop).DNSRoot
+                    }
+
+                    Write-Verbose -Message "    [i] Domain: $DomainName"
+
                     $ADGroupName = $ADGroup.Name
 
                     #Region Get Group Membership
-                    Write-Verbose -Message "    [*] Querying AD Group Membership"
+                    #Write-Verbose -Message "    [*] Querying AD Group Membership"
 
                     $GroupMemberSplatting = @{}
                     $GroupMemberSplatting.Identity = $ADGroup
@@ -569,18 +660,23 @@ function Invoke-ADGroupMembershipMonitoring
 
                     $ADGroupMembers = Get-ADGroupMember @GroupMemberSplatting -ErrorAction Stop -ErrorVariable ErrorProcessGetADGroupMember
 
+                    Write-Verbose -Message "    [+] Collected AD Group Membership"
+
                     # For each group member, get AD object with needed properties
                     $Members = $ADGroupMembers | Get-ADObjectDetails -ErrorAction Stop
 
-                    if (-not ($Members))
+                    if ($Members)
+                    {
+                        $ReferenceObject = $Members
+                    }
+                    else
                     {
                         # no members, add some info in $members to avoid the $null
                         # if the value is $null the compare-object won't work
 
-                        Write-Verbose -Message "    [-] Group is empty"
+                        Write-Verbose -Message "    [-] AD Group is empty"
 
-                        $Members = [PSCustomObject]@{
-                            Name           = 'No Member'
+                        $ReferenceObject = [PSCustomObject]@{
                             SamAccountName = 'No Member'
                         }
                     }
@@ -594,27 +690,42 @@ function Invoke-ADGroupMembershipMonitoring
 
                     if (-not (Test-Path -Path $CurrentGroupMembershipFilePath))
                     {
-                        Write-Verbose -Message "    [i] The file does not exist: $CurrentGroupMembershipFilePath"
+                        Write-Verbose -Message "    [i] CSV file with current group membership does not yet exist"
 
-                        $Members | Export-Csv -Path $CurrentGroupMembershipFilePath -NoTypeInformation -Encoding Unicode
-
-                        Write-Verbose -Message "    [+] Exported current group membership into file '$CurrentGroupMembershipFilePath'"
+                        $Members | Select-Object -Property $MembershipCsvProperty |
+                            Export-Csv -Path $CurrentGroupMembershipFilePath -NoTypeInformation -Encoding Unicode -ErrorAction Stop
+                        Write-Verbose -Message "    [+] Exported current group membership to CSV file '$CurrentGroupMembershipFilePath'"
                     }
                     else
                     {
-                        Write-Verbose -Message "    [i] The file exists: $CurrentGroupMembershipFilePath"
+                        Write-Verbose -Message "    [i] CSV file with current group membership exists"
                     }
 
                     $MembersFromCsv = Import-Csv -Path $CurrentGroupMembershipFilePath -ErrorAction Stop -ErrorVariable ErrorProcessImportCSV
 
                     # For each member in Csv file, get AD object with needed properties, if exists
-                    $MembersFromCsvDetails = $MembersFromCsv | Get-ADObjectDetails -ErrorAction Stop
+                    #$MembersFromCsvDetails = $MembersFromCsv | Where-Object { $_.SamAccountName -ne 'No Member' } | Get-ADObjectDetails #-ErrorAction Stop
+                    $MembersFromCsvDetails = $MembersFromCsv | Get-ADObjectDetails #-ErrorAction Stop
 
-                    Write-Verbose -Message "    [*] Comparing Current and Before"
+                    if ($MembersFromCsvDetails)
+                    {
+                        $DifferenceObject = $MembersFromCsvDetails
+                    }
+                    else
+                    {
+                        Write-Verbose -Message "    [i] No current group membership in CSV file"
 
-                    $CompareResult = Compare-Object -ReferenceObject $Members -DifferenceObject $MembersFromCsvDetails -Property SamAccountName -PassThru -ErrorAction Stop -ErrorVariable ErrorProcessCompareObject
+                        $DifferenceObject = [PSCustomObject]@{
+                            SamAccountName = 'No Member'
+                        }
+                    }
 
-                    $Changes = $CompareResult | Where-Object { $_.SamAccountName -ne 'No Member' } | ForEach-Object {
+                    Write-Verbose -Message "    [*] Comparing AD Group Membership with current group membership in CSV file"
+
+                    $CompareResult = Compare-Object -ReferenceObject $ReferenceObject -DifferenceObject $DifferenceObject -Property SamAccountName -PassThru -ErrorAction Stop -ErrorVariable ErrorProcessCompareObject
+
+                    #$Changes = $CompareResult | Where-Object { $_.SamAccountName -ne 'No Member' } | ForEach-Object {
+                    $Changes = $CompareResult | ForEach-Object {
                         $DateTime = Get-Date -Format $ChangesDateTimeFormat
                         $State    = switch ($PSItem.SideIndicator)
                         {
@@ -807,7 +918,7 @@ function Invoke-ADGroupMembershipMonitoring
                             # Export Current Group Membership to CSV
                             $Members | Select-Object -Property $MembershipCsvProperty |
                                 Export-Csv -Path $CurrentGroupMembershipFilePath -NoTypeInformation -Encoding Unicode -ErrorAction Stop
-                            Write-Verbose -Message "    [*] Exported current group membership to Membership CSV file '$CurrentGroupMembershipFilePath'"
+                            Write-Verbose -Message "    [+] Exported current group membership to CSV file '$CurrentGroupMembershipFilePath'"
                         }
 
                         $MemberList = New-Object System.Collections.Generic.List[Object]
@@ -842,7 +953,7 @@ function Invoke-ADGroupMembershipMonitoring
                                 }
                                 Default
                                 {
-                                    $PropertyValue = if ($ADGroup.$PropertyNam) { $ADGroup.$PropertyNam }
+                                    $PropertyValue = if ($ADGroup.$PropertyName) { $ADGroup.$PropertyName.ToString() }
                                     $GroupSummary.Add($PropertyName, $PropertyValue)
                                 }
                             }
