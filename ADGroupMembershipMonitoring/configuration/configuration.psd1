@@ -9,7 +9,7 @@
         OneReport = 'OneReport'
     }
     CSV = @{
-        ChangeHistoryProperty = 'DateTime', 'State', 'Name', 'SamAccountName', 'ObjectClass'
-        MembershipProperty    = 'Name', 'SamAccountName', 'ObjectClass'
+        ChangeHistoryProperty = 'DateTime', 'State', 'Name', 'SamAccountName', 'SID', 'ObjectClass'
+        MembershipProperty    = 'Name', 'SamAccountName', 'SID', 'ObjectClass'
     }
 }

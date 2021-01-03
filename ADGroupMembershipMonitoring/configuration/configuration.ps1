@@ -4,8 +4,8 @@ Set-PSFConfig -Module $ModuleName -Name "Folder.History" -Value 'History' -Initi
 Set-PSFConfig -Module $ModuleName -Name "Folder.HTML" -Value 'HTML' -Initialize -Validation string -Description ''
 Set-PSFConfig -Module $ModuleName -Name "Folder.OneReport" -Value 'OneReport' -Initialize -Validation string -Description ''
 Set-PSFConfig -Module $ModuleName -Name "Email.EmailSubjectPrefix" -Value '[AD Group Membership Monitoring]' -Initialize -Validation string -Description ''
-Set-PSFConfig -Module $ModuleName -Name "CSV.ChangeHistoryProperty" -Value 'DateTime', 'State', 'Name', 'SamAccountName', 'ObjectClass' -Initialize -Validation stringarray -Description ''
-Set-PSFConfig -Module $ModuleName -Name "CSV.MembershipProperty" -Value 'Name', 'SamAccountName', 'ObjectClass' -Initialize -Validation stringarray -Description ''
+Set-PSFConfig -Module $ModuleName -Name "CSV.ChangeHistoryProperty" -Value 'DateTime', 'State', 'Name', 'SamAccountName', 'SID', 'ObjectClass' -Initialize -Validation stringarray -Description ''
+Set-PSFConfig -Module $ModuleName -Name "CSV.MembershipProperty" -Value 'Name', 'SamAccountName', 'SID', 'ObjectClass' -Initialize -Validation stringarray -Description ''
 
 <#
 # Gather settings to export
