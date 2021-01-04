@@ -389,6 +389,12 @@ function Invoke-ADGroupMembershipMonitoring
                 }
             }
             #EndRegion
+
+            #Region Domain Lookup Table
+            $DomainSidLookupTable = (Get-ADForest).Domains | Get-ADDomain | ForEach-Object -Begin { $ht = @{} } -Process {
+                $ht[$PSItem.DomainSID.Value] = $PSItem
+            } -End { return $ht }
+            #EndRegin
         }
         catch
         {
@@ -592,7 +598,7 @@ function Invoke-ADGroupMembershipMonitoring
             # Process every group proided by any ParameterSet
             foreach ($GroupListItem in $GroupList)
             {
-                $Changes, $ADGroup, $ChangeList, $ChangeHistoryList, $MemberList = $null
+                $Changes, $ADGroup, $ChangeList, $ChangeHistoryList, $MemberList, $ReferenceObject, $DifferenceObject = $null
                 $PreContent, $HtmlGroupSummary, $HtmlChangeList, $HtmlChangeHistoryList, $HtmlMemberList = $null
 
                 try
@@ -627,11 +633,12 @@ function Invoke-ADGroupMembershipMonitoring
                     # Get Domain (FQDN) of the AD Group
                     if ($ADGroup.SID.AccountDomainSid.value)
                     {
-                        $DomainName = (Get-ADDomain -Identity $ADGroup.SID.AccountDomainSid.value -ErrorAction Stop).DNSRoot
+                        $Server    = $DomainSidLookupTable[$ADGroup.SID.AccountDomainSid.value].DNSRoot
+                        $DomainName = (Get-ADDomain -Identity $ADGroup.SID.AccountDomainSid.value -Server $Server -ErrorAction Stop).DNSRoot
                     }
                     elseif ($PSBoundParameters['Server'])
                     {
-                        $DomainName = (Get-ADDomain -Server $Server -ErrorAction Stop).DNSRoot
+                        $DomainName = (Get-ADDomain -Identity $Server -Server $Server -ErrorAction Stop).DNSRoot
                     }
                     else
                     {
@@ -643,8 +650,6 @@ function Invoke-ADGroupMembershipMonitoring
                     $ADGroupName = $ADGroup.Name
 
                     #Region Get Group Membership
-                    #Write-Verbose -Message "    [*] Querying AD Group Membership"
-
                     $GroupMemberSplatting = @{}
                     $GroupMemberSplatting.Identity = $ADGroup
 
@@ -663,22 +668,18 @@ function Invoke-ADGroupMembershipMonitoring
                     Write-Verbose -Message "    [+] Collected AD Group Membership"
 
                     # For each group member, get AD object with needed properties
-                    $Members = $ADGroupMembers | Get-ADObjectDetails -ErrorAction Stop
+                    $Members = $ADGroupMembers | Get-ADObjectDetails -ErrorAction Continue
 
                     if ($Members)
                     {
                         $ReferenceObject = $Members
+
+                        Write-Verbose -Message ("    [i] AD Group has {0} members" -f $Members.Count)
                     }
                     else
                     {
-                        # no members, add some info in $members to avoid the $null
-                        # if the value is $null the compare-object won't work
-
-                        Write-Verbose -Message "    [-] AD Group is empty"
-
-                        $ReferenceObject = [PSCustomObject]@{
-                            SamAccountName = 'No Member'
-                        }
+                        $ReferenceObject = @()
+                        Write-Verbose -Message "    [i] AD Group is empty"
                     }
                     #EndRegion
 
@@ -703,9 +704,25 @@ function Invoke-ADGroupMembershipMonitoring
 
                     $MembersFromCsv = Import-Csv -Path $CurrentGroupMembershipFilePath -ErrorAction Stop -ErrorVariable ErrorProcessImportCSV
 
-                    # For each member in Csv file, get AD object with needed properties, if exists
-                    #$MembersFromCsvDetails = $MembersFromCsv | Where-Object { $_.SamAccountName -ne 'No Member' } | Get-ADObjectDetails #-ErrorAction Stop
-                    $MembersFromCsvDetails = $MembersFromCsv | Get-ADObjectDetails #-ErrorAction Stop
+                    $MembersFromCsvDetails = foreach ($MembersFromCsvItem in $MembersFromCsv)
+                    {
+                        # for each member in Csv file, get AD object with needed properties, if exists
+                        $MembersFromCsvItemDetails = $MembersFromCsvItem | Get-ADObjectDetails -ErrorAction SilentlyContinue -ErrorVariable ADObjectDetailsError
+
+                        if ($ADObjectDetailsError)
+                        {
+                            $MembersFromCsvItemDetails = [PSCustomObject]@{
+                                SamAccountName = $ADObjectDetailsError.TargetObject
+                            }
+
+                            Write-Warning ("    [!] Could not get details for AD Object '{0}'" -f $ADObjectDetailsError.TargetObject)
+                        }
+
+                        # workaround to combine objects with different types (and properties)
+                        # AD Objects and custom PSCustomObject
+                        #$MembersFromCsvItemDetails | Select-Object -Property *
+                        $MembersFromCsvItemDetails
+                    }
 
                     if ($MembersFromCsvDetails)
                     {
@@ -713,18 +730,13 @@ function Invoke-ADGroupMembershipMonitoring
                     }
                     else
                     {
+                        $DifferenceObject = @()
                         Write-Verbose -Message "    [i] No current group membership in CSV file"
-
-                        $DifferenceObject = [PSCustomObject]@{
-                            SamAccountName = 'No Member'
-                        }
                     }
 
-                    Write-Verbose -Message "    [*] Comparing AD Group Membership with current group membership in CSV file"
+                    # compare using the unique identifiert property "SID"
+                    $CompareResult = Compare-Object -ReferenceObject $ReferenceObject -DifferenceObject $DifferenceObject -Property SID -PassThru -ErrorAction Stop -ErrorVariable ErrorProcessCompareObject
 
-                    $CompareResult = Compare-Object -ReferenceObject $ReferenceObject -DifferenceObject $DifferenceObject -Property SamAccountName -PassThru -ErrorAction Stop -ErrorVariable ErrorProcessCompareObject
-
-                    #$Changes = $CompareResult | Where-Object { $_.SamAccountName -ne 'No Member' } | ForEach-Object {
                     $Changes = $CompareResult | ForEach-Object {
                         $DateTime = Get-Date -Format $ChangesDateTimeFormat
                         $State    = switch ($PSItem.SideIndicator)
@@ -736,6 +748,8 @@ function Invoke-ADGroupMembershipMonitoring
                         $PSItem | Add-Member -Name 'DateTime' -Value $DateTime -MemberType NoteProperty -Force
                         $PSItem | Add-Member -Name 'State' -Value $State -MemberType NoteProperty -Force -PassThru
                     }
+
+                    Write-Verbose -Message "    [+] Compared AD Group Membership with current group membership in CSV file"
                     #EndRegion
 
 
@@ -806,12 +820,18 @@ function Invoke-ADGroupMembershipMonitoring
 
                             foreach ($ChangeHistoryItem in $ChangeHistoryFromCsv)
                             {
-                                $ADObjectDetails = $null
+                                $ChangeHistoryItemDetails = $null
 
                                 try
                                 {
                                     # For the member in Csv file, get the AD object with needed properties, if exists
-                                    $ADObjectDetails = $ChangeHistoryItem | Get-ADObjectDetails -ErrorAction Stop
+                                    #$ChangeHistoryItemDetails = $ChangeHistoryItem | Get-ADObjectDetails -ErrorAction Stop
+                                    $ChangeHistoryItemDetails = $ChangeHistoryItem | Get-ADObjectDetails -ErrorAction SilentlyContinue -ErrorVariable ADObjectDetailsError
+
+                                    if ($ADObjectDetailsError)
+                                    {
+                                        Write-Warning ("    [!] Could not get details for AD Object '{0}'" -f $ADObjectDetailsError.TargetObject)
+                                    }
                                 }
                                 catch
                                 {
@@ -840,16 +860,16 @@ function Invoke-ADGroupMembershipMonitoring
                                         }
                                         Default
                                         {
-                                            if ($ADObjectDetails)
+                                            if ($ChangeHistoryItemDetails)
                                             {
-                                                $PropertyValue = if ($ADObjectDetails.$PropertyName) { $ADObjectDetails.$PropertyName }
+                                                $PropertyValue = if ($ChangeHistoryItemDetails.Contains($PropertyName)) { $ChangeHistoryItemDetails.$PropertyName.ToString() }
                                                 #Write-Verbose "$PropertyName : $PropertyValue"
                                             }
                                             else
                                             {
-                                                if ($PropertyName -in ('SamAccountName', 'ObjectClass'))
+                                                if ($PropertyName -in ('SamAccountName', 'ObjectClass', 'SID'))
                                                 {
-                                                    # handling exception where AD object is not found, return the identifier attribute 'SamAccountName' value from CSV file
+                                                    # handling exception where AD object is not found, return the identifier attributes' value from CSV file
                                                     $PropertyValue = $ChangeHistoryItem.$PropertyName
                                                     #Write-Verbose "$PropertyName : $PropertyValue (from CSV)"
                                                 }
@@ -884,6 +904,7 @@ function Invoke-ADGroupMembershipMonitoring
                                 # - combine existing and new Changes and export to CSV
                                 $CsvColumns = $ChangeHistoryFromCsv[0].psobject.Properties.Name
                                 $MissingCsvColumns = $ChangeHistoryCsvProperty | Where-Object { $PSItem -notin $CsvColumns }
+
                                 if ($MissingCsvColumns)
                                 {
                                     foreach ($ChangeHistoryItem in $ChangeHistoryFromCsv)
@@ -893,14 +914,10 @@ function Invoke-ADGroupMembershipMonitoring
                                         }
                                     }
                                 }
+
                                 $ChangesToExport = $ChangeHistoryFromCsv + $Changes
                                 $ChangesToExport | Select-Object -Property $ChangeHistoryCsvProperty |
                                     Export-Csv -Path $ChangeHistoryFile -NoTypeInformation -Encoding Unicode -ErrorAction Stop
-
-                                <#
-                                $Changes | Select-Object -Property $ChangeHistoryCsvProperty |
-                                    Export-Csv -Path $ChangeHistoryFile -NoTypeInformation -Append -Encoding Unicode -ErrorAction Stop
-                                #>
                             }
                             else
                             {
@@ -929,7 +946,8 @@ function Invoke-ADGroupMembershipMonitoring
 
                             foreach ($PropertyName in $MembersTableProperty)
                             {
-                                $PropertyValue = if ($MemberItem.$PropertyName) { $MemberItem.$PropertyName }
+                                $PropertyValue = $null
+                                $PropertyValue = if ($MemberItem.Contains($PropertyName)) { $MemberItem.$PropertyName.ToString() }
                                 $ListItem.Add($PropertyName, $PropertyValue)
                             }
 
@@ -944,19 +962,9 @@ function Invoke-ADGroupMembershipMonitoring
 
                         foreach ($PropertyName in $GroupSummaryTableProperty)
                         {
-                            switch ($PropertyName)
-                            {
-                                'SID'
-                                {
-                                    $PropertyValue = if ($ADGroup.$PropertyName.value) { $ADGroup.$PropertyName.value }
-                                    $GroupSummary.Add($PropertyName, $PropertyValue)
-                                }
-                                Default
-                                {
-                                    $PropertyValue = if ($ADGroup.$PropertyName) { $ADGroup.$PropertyName.ToString() }
-                                    $GroupSummary.Add($PropertyName, $PropertyValue)
-                                }
-                            }
+                            $PropertyValue = $null
+                            $PropertyValue = if ($ADGroup.Contains($PropertyName)) { $ADGroup.$PropertyName.ToString() }
+                            $GroupSummary.Add($PropertyName, $PropertyValue)
                         }
 
                         $GroupSummary = [PSCustomObject]$GroupSummary
