@@ -12,7 +12,8 @@ $paramADGroupMembershipMonitoring = @{
     EmailFrom           = 'noreply@company.com'
     EmailServer         = 'mail.company.com'
     EmailEncoding       = 'UTF8'
-    SaveAsHTML          = $true
+    SaveReport          = $true
+    ForceAction         = $true
     Path                = 'C:\Scripts\ADGroupMembershipMonitoring\HighPrivilegedGroups'
 }
 

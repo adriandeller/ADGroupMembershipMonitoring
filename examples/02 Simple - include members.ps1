@@ -10,7 +10,7 @@ $paramADGroupMembershipMonitoring = @{
     EmailFrom           = 'noreply@company.com'
     EmailServer         = 'mail.company.com'
     EmailEncoding       = 'UTF8'
-    SaveAsHTML          = $true
+    SaveReport          = $true
     IncludeMembers      = $true
     Path                = 'C:\Scripts\ADGroupMembershipMonitoring'
 }

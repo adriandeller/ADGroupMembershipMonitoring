@@ -11,18 +11,18 @@ function Invoke-ADGroupMembershipMonitoring
         You can also specify the 'DN','GUID','SID' or the 'Name' of your group(s).
         Using 'Domain\Name' will also work.
     .PARAMETER Recursive
-        by default, search for group members with direct membership,
+        By default, search for group members with direct membership,
         Specify this switch and group members with indirect membership through group nesting will also be searched
     .PARAMETER SearchRoot
-        Specify the DN, GUID or canonical name of the domain or container to search. By default, the script searches the entire sub-tree of which SearchRoot is the topmost object (sub-tree search). This default behavior can be altered by using the SearchScope parameter.
+        Specify the DN, GUID or canonical name of the domain or container to search.
+        By default, the script searches the entire sub-tree of which SearchRoot is the topmost object (sub-tree search).
+        This default behavior can be altered by using the SearchScope parameter.
     .PARAMETER SearchScope
         Specify one of these parameter values
             'Base' Limits the search to the base (SearchRoot) object.
                 The result contains a maximum of one object.
-            'OneLevel' Searches the immediate child objects of the base (SearchRoot)
-                object, excluding the base object.
-            'Subtree'   Searches the whole sub-tree, including the base (SearchRoot)
-                object and all its child objects.
+            'OneLevel' Searches the immediate child objects of the base (SearchRoot) object, excluding the base object.
+            'Subtree'   Searches the whole sub-tree, including the base (SearchRoot) object and all its child objects.
     .PARAMETER GroupScope
         Specify the group scope of groups you want to find. Acceptable values are:
             'Global';
@@ -54,9 +54,11 @@ function Invoke-ADGroupMembershipMonitoring
     .PARAMETER Server
         Specify the Domain Controller to use.
         Aliases: DomainController, Service
-    .PARAMETER SaveAsHTML
-        Specify if you want to save a local copy of the Report.
-        It will be saved under the directory "HTML".
+    .PARAMETER SendEmail
+        Specify if you want to send an Email including the HTML Report.
+    .PARAMETER SaveReport
+        Specify if you want to save the HTML Report.
+        It will be saved under the "HTML" directory.
     .PARAMETER IncludeMembers
         Specify if you want to include all members in the Report.
     .PARAMETER ExcludeChanges
@@ -65,10 +67,8 @@ function Invoke-ADGroupMembershipMonitoring
         Specify if you want to exclude the change history in the Report.
     .PARAMETER ExcludeSummary
         Specify if you want to exclude the summary at the top of the Report.
-    .PARAMETER AlwaysReport
-        Specify if you want to generate a HTML Report and send an Email each time.
-    .PARAMETER AlwaysExport
-        Specify if you want to generate a HTML Report each time.
+    .PARAMETER ForceAction
+        Specify if you want to send an Email (with the HTML Report) and save a HTML Report each time.
     .PARAMETER OneReport
         Specify if you want to only send one email with all group report as attachment
     .PARAMETER ExtendedProperty
@@ -154,17 +154,17 @@ function Invoke-ADGroupMembershipMonitoring
         [string]
         $Server,
 
-        [Parameter(Mandatory, HelpMessage = 'You must specify the sender E-Mail Address')]
+        [Parameter(HelpMessage = 'You must specify the sender E-Mail Address')]
         [ValidatePattern("[a-z0-9!#\$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#\$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?")]
         [string]
         $EmailFrom,
 
-        [Parameter(Mandatory, HelpMessage = 'You must specify the destination E-Mail Address')]
+        [Parameter(HelpMessage = 'You must specify the recipient(s) E-Mail Address')]
         [ValidatePattern("[a-z0-9!#\$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#\$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?")]
         [string[]]
         $EmailTo,
 
-        [Parameter(Mandatory, HelpMessage = 'You must specify the Mail Server to use (FQDN or ip address)')]
+        [Parameter(HelpMessage = 'You must specify the Mail Server to use (FQDN or ip address)')]
         [string]
         $EmailServer,
 
@@ -186,8 +186,12 @@ function Invoke-ADGroupMembershipMonitoring
         $EmailCredential = [System.Management.Automation.PSCredential]::Empty,
 
         [Parameter()]
+        [switch]
+        $SendEmail,
+
+        [Parameter()]
         [Switch]
-        $SaveAsHTML,
+        $SaveReport,
 
         [Parameter()]
         [Switch]
@@ -207,11 +211,7 @@ function Invoke-ADGroupMembershipMonitoring
 
         [Parameter()]
         [Switch]
-        $AlwaysExport,
-
-        [Parameter()]
-        [Switch]
-        $AlwaysReport,
+        $ForceAction,
 
         [Parameter()]
         [Switch]
@@ -230,6 +230,24 @@ function Invoke-ADGroupMembershipMonitoring
 
     Begin
     {
+        #Region Parameter validation
+        if ($PSBoundParameters.ContainsKey('SendEmail'))
+        {
+            if(-not ($PSBoundParameters.ContainsKey('EmailFrom') -and $PSBoundParameters.ContainsKey('EmailTo') -and $PSBoundParameters.ContainsKey('EmailServer')))
+            {
+                throw "The 'EmailFrom', 'EmailTo' and 'EmailServer' parameters are required when using SendEmail"
+            }
+        }
+
+        if ($PSBoundParameters.ContainsKey('OneReport'))
+        {
+            if (-not $PSBoundParameters.ContainsKey('SendEmail'))
+            {
+                throw "The 'SendEmail' parameter is required when using OneReport"
+            }
+        }
+        #EndRegion
+
         $ScriptName = $MyInvocation.MyCommand.Name
 
         Write-Verbose -Message "[$ScriptName][Begin]"
@@ -259,10 +277,6 @@ function Invoke-ADGroupMembershipMonitoring
             #EndRegion
 
             #Region Configuration
-            # Import default values from config file
-            #$Configuration = Get-Configuration -Verbose
-            #Write-Verbose -Message "    [+] Imported configuration"
-
             # Using PSFramework for configuration
             if (-not (Get-PSFConfig -Module $ModuleName))
             {
@@ -752,8 +766,8 @@ function Invoke-ADGroupMembershipMonitoring
                     Write-Verbose -Message "    [+] Compared AD Group Membership with current group membership in CSV file"
                     #EndRegion
 
-
-                    if ($Changes -or $AlwaysReport -or $AlwaysExport)
+                    #if ($Changes -or $AlwaysSendEmail -or $AlwaysSaveReport)
+                    if ($Changes -or ($ForceAction -and ($SendEmail -or $SaveReport)))
                     {
                         # Found Changes or report/export anyway
                         if ($Changes)
@@ -1029,9 +1043,10 @@ function Invoke-ADGroupMembershipMonitoring
                                 $OneReportMailPriority = $MailPriority
                             }
                         }
-                        elseif ($Changes -or $PSBoundParameters['AlwaysReport'])
+                        #elseif ($Changes -or $PSBoundParameters['ForceAction'])
+                        elseif ($PSBoundParameters['SendEMail'] -and ($Changes -or $PSBoundParameters['ForceAction']))
                         {
-                            # send e-mail for each group if Changes found or if 'AlwaysReport' is specified
+                            # send e-mail for each group if Changes found or if 'ForceAction' is specified
 
                             if ($Changes)
                             {
@@ -1067,7 +1082,8 @@ function Invoke-ADGroupMembershipMonitoring
                         #Region Export HTML report to file
                         $HTMLFileName = "{0}_{1}-{2}.html" -f $DomainName, $ADGroupName, (Get-Date -Format $FileNameDateTimeFormat)
 
-                        if ($PSBoundParameters['SaveAsHTML'] -or $PSBoundParameters['AlwaysExport'])
+                        #if ($PSBoundParameters['SaveReport'] -or $PSBoundParameters['AlwaysSaveReport'])
+                        if ($PSBoundParameters['SaveReport'] -and ($Changes -or $PSBoundParameters['ForceAction']))
                         {
                             # Save HTML File
                             $Body | Out-File -FilePath (Join-Path -Path $ScriptPathHTML -ChildPath $HTMLFileName) -ErrorAction Stop
@@ -1108,10 +1124,11 @@ function Invoke-ADGroupMembershipMonitoring
             #EndRegion
 
             #Region Send OneReport Email
-            if ($PSBoundParameters['OneReport'] -and ($Changes -or $PSBoundParameters['AlwaysReport']))
+            #if ($PSBoundParameters['OneReport'] -and ($Changes -or ($PSBoundParameters['SendEmail'] -and $PSBoundParameters['ForceAction'])))
+            if ($PSBoundParameters['SendEmail'] -and $PSBoundParameters['OneReport'] -and ($Changes -or $PSBoundParameters['ForceAction']))
             {
-                # send OneReport e-mail if 'OneReport' is specified and
-                # if Changes found or if 'AlwaysReport' is specified
+                # send OneReport e-mail if 'SendEmail' and 'OneReport' is specified and
+                # if Changes found or if 'ForceAction' is specified
 
                 $Attachments = foreach ($OneReportFile in (Get-ChildItem -File -Path $ScriptPathOneReport))
                 {
