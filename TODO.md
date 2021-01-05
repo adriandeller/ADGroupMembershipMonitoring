@@ -1,5 +1,6 @@
 # To Do
 
+- [ ] add parameter 'LimitHistory' to limit Change History entries in the Report (number entries or timespan ?)
 - [ ] add parameter 'LDAPFilter' to gather AD Groups using an LDAP Filter
 - [x] add parameter 'AlwaysExport' to create a HTML Report each time
 - [x] add parameter 'ExcludeSummary' to exclude the Summary at the top of the Report
