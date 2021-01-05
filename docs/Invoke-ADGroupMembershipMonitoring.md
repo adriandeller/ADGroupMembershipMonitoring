@@ -14,29 +14,39 @@ This function is monitoring group(s) in Active Directory and sends an email when
 
 ### Group (Default)
 ```
-Invoke-ADGroupMembershipMonitoring -Group <String[]> [-Recursive] [-Server <String>] -EmailFrom <String>
- -EmailTo <String[]> -EmailServer <String> [-EmailPort <String>] [-EmailSubjectPrefix <String>]
- [-EmailEncoding <String>] [-EmailCredential <PSCredential>] [-SaveAsHTML] [-IncludeMembers] [-ExcludeChanges]
- [-ExcludeHistory] [-ExcludeSummary] [-AlwaysExport] [-AlwaysReport] [-OneReport] [-ExtendedProperty]
+Invoke-ADGroupMembershipMonitoring -Group <String[]> [-Recursive] [-Server <String>] [-EmailFrom <String>]
+ [-EmailTo <String[]>] [-EmailServer <String>] [-EmailPort <String>] [-EmailSubjectPrefix <String>]
+ [-EmailEncoding <String>] [-EmailCredential <PSCredential>] [-SendEmail] [-SaveReport] [-IncludeMembers]
+ [-ExcludeChanges] [-ExcludeHistory] [-ExcludeSummary] [-ForceAction] [-OneReport] [-ExtendedProperty]
  -Path <String> [<CommonParameters>]
+```
+
+### LDAPFilter
+```
+Invoke-ADGroupMembershipMonitoring [-Recursive] [-SearchRoot <String[]>] [-SearchScope <String>]
+ -LDAPFilter <String> [-Server <String>] [-EmailFrom <String>] [-EmailTo <String[]>] [-EmailServer <String>]
+ [-EmailPort <String>] [-EmailSubjectPrefix <String>] [-EmailEncoding <String>]
+ [-EmailCredential <PSCredential>] [-SendEmail] [-SaveReport] [-IncludeMembers] [-ExcludeChanges]
+ [-ExcludeHistory] [-ExcludeSummary] [-ForceAction] [-OneReport] [-ExtendedProperty] -Path <String>
+ [<CommonParameters>]
 ```
 
 ### ADFilter
 ```
-Invoke-ADGroupMembershipMonitoring [-Recursive] -SearchRoot <String[]> [-SearchScope <String>]
- [-GroupScope <String>] [-GroupType <String>] [-GroupFilter <String>] [-Server <String>] -EmailFrom <String>
- -EmailTo <String[]> -EmailServer <String> [-EmailPort <String>] [-EmailSubjectPrefix <String>]
- [-EmailEncoding <String>] [-EmailCredential <PSCredential>] [-SaveAsHTML] [-IncludeMembers] [-ExcludeChanges]
- [-ExcludeHistory] [-ExcludeSummary] [-AlwaysExport] [-AlwaysReport] [-OneReport] [-ExtendedProperty]
+Invoke-ADGroupMembershipMonitoring [-Recursive] [-SearchRoot <String[]>] [-SearchScope <String>]
+ [-GroupScope <String>] [-GroupType <String>] -GroupFilter <String> [-Server <String>] [-EmailFrom <String>]
+ [-EmailTo <String[]>] [-EmailServer <String>] [-EmailPort <String>] [-EmailSubjectPrefix <String>]
+ [-EmailEncoding <String>] [-EmailCredential <PSCredential>] [-SendEmail] [-SaveReport] [-IncludeMembers]
+ [-ExcludeChanges] [-ExcludeHistory] [-ExcludeSummary] [-ForceAction] [-OneReport] [-ExtendedProperty]
  -Path <String> [<CommonParameters>]
 ```
 
 ### File
 ```
-Invoke-ADGroupMembershipMonitoring [-Recursive] -File <String[]> [-Server <String>] -EmailFrom <String>
- -EmailTo <String[]> -EmailServer <String> [-EmailPort <String>] [-EmailSubjectPrefix <String>]
- [-EmailEncoding <String>] [-EmailCredential <PSCredential>] [-SaveAsHTML] [-IncludeMembers] [-ExcludeChanges]
- [-ExcludeHistory] [-ExcludeSummary] [-AlwaysExport] [-AlwaysReport] [-OneReport] [-ExtendedProperty]
+Invoke-ADGroupMembershipMonitoring [-Recursive] -File <String[]> [-Server <String>] [-EmailFrom <String>]
+ [-EmailTo <String[]>] [-EmailServer <String>] [-EmailPort <String>] [-EmailSubjectPrefix <String>]
+ [-EmailEncoding <String>] [-EmailCredential <PSCredential>] [-SendEmail] [-SaveReport] [-IncludeMembers]
+ [-ExcludeChanges] [-ExcludeHistory] [-ExcludeSummary] [-ForceAction] [-OneReport] [-ExtendedProperty]
  -Path <String> [<CommonParameters>]
 ```
 
@@ -54,21 +64,6 @@ PS> Invoke-ADGroupMembershipMonitoring -Group 'Domain Admins' -EmailFrom 'From@C
 This will query the group 'Domain Admins' and send an email to 'To@Company.com' using the address 'From@Company.com' and the server 'mail.company.com'.
 
 ## PARAMETERS
-
-### -AlwaysReport
-{{ Fill AlwaysReport Description }}
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: Named
-Default value: False
-Accept pipeline input: False
-Accept wildcard characters: False
-```
 
 ### -EmailCredential
 {{ Fill EmailCredential Description }}
@@ -109,7 +104,7 @@ Type: String
 Parameter Sets: (All)
 Aliases:
 
-Required: True
+Required: False
 Position: Named
 Default value: None
 Accept pipeline input: False
@@ -139,7 +134,7 @@ Type: String
 Parameter Sets: (All)
 Aliases:
 
-Required: True
+Required: False
 Position: Named
 Default value: None
 Accept pipeline input: False
@@ -169,7 +164,7 @@ Type: String[]
 Parameter Sets: (All)
 Aliases:
 
-Required: True
+Required: False
 Position: Named
 Default value: None
 Accept pipeline input: False
@@ -229,7 +224,7 @@ Type: String
 Parameter Sets: ADFilter
 Aliases:
 
-Required: False
+Required: True
 Position: Named
 Default value: None
 Accept pipeline input: False
@@ -328,30 +323,15 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -SaveAsHTML
-{{ Fill SaveAsHTML Description }}
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: Named
-Default value: False
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -SearchRoot
 You must specify at least one Active Directory OU
 
 ```yaml
 Type: String[]
-Parameter Sets: ADFilter
+Parameter Sets: LDAPFilter, ADFilter
 Aliases: SearchBase
 
-Required: True
+Required: False
 Position: Named
 Default value: None
 Accept pipeline input: False
@@ -363,7 +343,7 @@ Accept wildcard characters: False
 
 ```yaml
 Type: String
-Parameter Sets: ADFilter
+Parameter Sets: LDAPFilter, ADFilter
 Aliases:
 Accepted values: Base, OneLevel, Subtree
 
@@ -380,22 +360,7 @@ Accept wildcard characters: False
 ```yaml
 Type: String
 Parameter Sets: (All)
-Aliases: DomainController, Service
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -AlwaysExport
-{{ Fill AlwaysExport Description }}
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: (All)
-Aliases:
+Aliases: Domain, DomainController, Service
 
 Required: False
 Position: Named
@@ -436,6 +401,66 @@ Accept wildcard characters: False
 
 ### -ExcludeSummary
 {{ Fill ExcludeSummary Description }}
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -ForceAction
+{{ Fill ForceAction Description }}
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -LDAPFilter
+{{ Fill LDAPFilter Description }}
+
+```yaml
+Type: String
+Parameter Sets: LDAPFilter
+Aliases:
+
+Required: True
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -SaveReport
+{{ Fill SaveReport Description }}
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -SendEmail
+{{ Fill SendEmail Description }}
 
 ```yaml
 Type: SwitchParameter
