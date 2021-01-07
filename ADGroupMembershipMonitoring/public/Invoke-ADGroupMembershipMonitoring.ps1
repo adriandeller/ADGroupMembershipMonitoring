@@ -43,14 +43,18 @@ function Invoke-ADGroupMembershipMonitoring
     .PARAMETER EmailPort
         Specify the port for the Email Server
     .PARAMETER EmailTo
-        Specify the Email Address(es) of the Destination. Example: fxcat@fx.lab
+        Specify the Email address(es) of the recipients. Example: fxcat@fx.lab
+    .PARAMETER EmailToManger
+        Specify if you want to send the Email to the group's manager(s)
+    .PARAMETER EmailToSelf
+        Specify if you want to send the Email to the group's mail address (Distribution Group only)
     .PARAMETER EmailFrom
         Specify the Email Address of the Sender. Example: Reporting@fx.lab
     .PARAMETER EmailEncoding
         Specify the Body and Subject Encoding to use in the Email.
         Default is UTF8.
     .PARAMETER EmailSubjectPrefix
-        Specify a prefix for the E-Mail subject
+        Specify a prefix for the Email subject
     .PARAMETER Server
         Specify the Domain Controller to use.
         Aliases: DomainController, Service
@@ -164,6 +168,14 @@ function Invoke-ADGroupMembershipMonitoring
         [string[]]
         $EmailTo,
 
+        [Parameter()]
+        [switch]
+        $EmailToManger,
+
+        [Parameter()]
+        [switch]
+        $EmailToSelf,
+
         [Parameter(HelpMessage = 'You must specify the Mail Server to use (FQDN or ip address)')]
         [string]
         $EmailServer,
@@ -231,17 +243,24 @@ function Invoke-ADGroupMembershipMonitoring
     Begin
     {
         #Region Parameter validation
-        if ($PSBoundParameters.ContainsKey('SendEmail'))
+        if ($PSBoundParameters['SendEmail'] -and ($PSBoundParameters['EmailToManger'] -or $PSBoundParameters['EmailToSelf']))
         {
-            if(-not ($PSBoundParameters.ContainsKey('EmailFrom') -and $PSBoundParameters.ContainsKey('EmailTo') -and $PSBoundParameters.ContainsKey('EmailServer')))
+            if(-not ($PSBoundParameters['EmailFrom'] -and $PSBoundParameters['EmailServer']))
+            {
+                throw "The 'EmailFrom' and 'EmailServer' parameters are required when using SendEmail"
+            }
+        }
+        elseif ($PSBoundParameters['SendEmail'])
+        {
+            if(-not ($PSBoundParameters['EmailFrom'] -and $PSBoundParameters['EmailTo'] -and $PSBoundParameters['EmailServer']))
             {
                 throw "The 'EmailFrom', 'EmailTo' and 'EmailServer' parameters are required when using SendEmail"
             }
         }
 
-        if ($PSBoundParameters.ContainsKey('OneReport'))
+        if ($PSBoundParameters['OneReport'])
         {
-            if (-not $PSBoundParameters.ContainsKey('SendEmail'))
+            if (-not $PSBoundParameters['SendEmail'])
             {
                 throw "The 'SendEmail' parameter is required when using OneReport"
             }
@@ -302,6 +321,9 @@ function Invoke-ADGroupMembershipMonitoring
             $ChangeHistoryTableProperty = 'DateTime', 'State', 'Name', 'SamAccountName', 'ObjectClass'
             $MembersTableProperty = 'Name', 'SamAccountName', 'ObjectClass'
 
+            # Additionally required properties
+            $AdditionalProperty = 'mail', 'managedBy', 'msExchCoManagedByLink'
+
             $SpecialProperty = 'DateTime', 'State'
 
             if ($PSBoundParameters['Recursive'])
@@ -315,7 +337,7 @@ function Invoke-ADGroupMembershipMonitoring
             }
 
             # Create array with all required properties/attributes for AD object queries
-            $ADObjectPropertyArray = $ChangeHistoryCsvProperty + $MembershipCsvProperty + $GroupSummaryTableProperty + $MembershipChangeTableProperty + $ChangeHistoryTableProperty + $MembersTableProperty |
+            $ADObjectPropertyArray = $ChangeHistoryCsvProperty + $MembershipCsvProperty + $GroupSummaryTableProperty + $MembershipChangeTableProperty + $ChangeHistoryTableProperty + $MembersTableProperty + $AdditionalProperty |
                 Select-Object -Unique -ExcludeProperty $SpecialProperty
 
             # Filter properties for valid Computer object attributes
@@ -1015,7 +1037,7 @@ function Invoke-ADGroupMembershipMonitoring
                         #Region HTML Report / Email
                         Write-Verbose -Message "    [*] Preparing the HTML report and Email"
 
-                        # Preparing the body of the email
+                        # Creating HTML content
                         $PreContent = "<h2>Group: $ADGroupName</h2>"
 
                         if (-not ($PSBoundParameters['ExcludeSummary']))
@@ -1077,6 +1099,31 @@ function Invoke-ADGroupMembershipMonitoring
 
                         $Body = ConvertTo-Html -Head $Head -Body $PreContent, $HtmlGroupSummary, $HtmlChangeList, $HtmlChangeHistoryList, $HtmlMemberList, $PostContent | Out-String
                         $Body = $Body.Replace("Added", "<font color=`"green`"><b>Added</b></font>").Replace("Removed", "<font color=`"red`"><b>Removed</b></font>")
+                        #EndRegion
+
+                        #Region Sending Email
+                        if ($PSBoundParameters['SendEMail'] -and $PSBoundParameters['EmailToManger'])
+                        {
+                            $ADGroupManagers = foreach ($Attribute in ('managedBy', 'msExchCoManagedByLink'))
+                            {
+                                $ADGroup.$Attribute | Get-ADUser -Property mail -ErrorAction SilentlyContinue | Select-Object -ExpandProperty mail
+                            }
+
+                            if ($ADGroupManagers)
+                            {
+                                $EmailTo += $ADGroupManagers
+                            }
+                        }
+
+                        if ($PSBoundParameters['SendEMail'] -and $PSBoundParameters['EmailToSelf'])
+                        {
+                            $ADGroupEmail = $ADGroup.mail
+
+                            if ($ADGroupEmail)
+                            {
+                                $EmailTo += $ADGroupEmail
+                            }
+                        }
 
                         if ($PSBoundParameters['OneReport'])
                         {
@@ -1090,7 +1137,6 @@ function Invoke-ADGroupMembershipMonitoring
                                 $OneReportMailPriority = $MailPriority
                             }
                         }
-                        #elseif ($Changes -or $PSBoundParameters['ForceAction'])
                         elseif ($PSBoundParameters['SendEMail'] -and ($Changes -or $PSBoundParameters['ForceAction']))
                         {
                             # send e-mail for each group if Changes found or if 'ForceAction' is specified
@@ -1130,7 +1176,6 @@ function Invoke-ADGroupMembershipMonitoring
                         #Region Export HTML report to file
                         $HTMLFileName = "{0}_{1}-{2}.html" -f $DomainName, $ADGroupName, (Get-Date -Format $FileNameDateTimeFormat)
 
-                        #if ($PSBoundParameters['SaveReport'] -or $PSBoundParameters['AlwaysSaveReport'])
                         if ($PSBoundParameters['SaveReport'] -and ($Changes -or $PSBoundParameters['ForceAction']))
                         {
                             # Save HTML File
@@ -1172,7 +1217,6 @@ function Invoke-ADGroupMembershipMonitoring
             #EndRegion
 
             #Region Send OneReport Email
-            #if ($PSBoundParameters['OneReport'] -and ($Changes -or ($PSBoundParameters['SendEmail'] -and $PSBoundParameters['ForceAction'])))
             if ($PSBoundParameters['SendEmail'] -and $PSBoundParameters['OneReport'] -and ($Changes -or $PSBoundParameters['ForceAction']))
             {
                 # send OneReport e-mail if 'SendEmail' and 'OneReport' is specified and
