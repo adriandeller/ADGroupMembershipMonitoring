@@ -1,8 +1,10 @@
 # To Do
 
 - [ ] add parameter 'LimitHistory' to limit Change History entries in the Report (number entries or timespan ?)
-- [ ] add parameter 'LDAPFilter' to gather AD Groups using an LDAP Filter
-- [x] add parameter 'AlwaysExport' to create a HTML Report each time
+- [x] add parameter 'LDAPFilter' to gather AD Groups using an LDAP Filter
+- [x] add parameter 'ForceAction' to send an Email and to save the HTML Report regardless of whether a change was found.
+- [x] add parameter 'SendEmail' to specify if you want to send an Email including the HTML Report
+- [x] add parameter 'SaveReport' to specify if you want to save the HTML Report
 - [x] add parameter 'ExcludeSummary' to exclude the Summary at the top of the Report
 - [x] add parameter 'ExcludeHistory' to exclude the Change History in the Report
 - [x] add parameter 'ExcludeChanges' to exclude the Changes in the Report
