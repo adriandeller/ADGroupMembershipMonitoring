@@ -218,8 +218,8 @@ function Invoke-ADGroupMembershipMonitoring
         $OneReport,
 
         [Parameter()]
-        [Switch]
-        $ExtendedProperty,
+        [string[]]
+        $MembersProperty,
 
         [Parameter(Mandatory, HelpMessage = 'You must specify a path for data storage')]
         [Alias('OutputPath', 'FolderPath')]
@@ -298,15 +298,20 @@ function Invoke-ADGroupMembershipMonitoring
 
             # Report table columns
             $GroupSummaryTableProperty = 'SamAccountName', 'Description', 'DistinguishedName', 'CanonicalName', 'SID', 'GroupScope', 'GroupCategory', 'gidNumber'
-            $MembershipChangeTableProperty = 'DateTime', 'State', 'Name', 'SamAccountName', 'ObjectClass', 'DistinguishedName'
+            $MembershipChangeTableProperty = 'DateTime', 'State', 'Name', 'SamAccountName', 'ObjectClass'
             $ChangeHistoryTableProperty = 'DateTime', 'State', 'Name', 'SamAccountName', 'ObjectClass'
-            $MembersTableProperty = 'Name', 'SamAccountName', 'ObjectClass', 'Mail'#, 'Nested'
+            $MembersTableProperty = 'Name', 'SamAccountName', 'ObjectClass'
 
             $SpecialProperty = 'DateTime', 'State'
 
-            if ($PSBoundParameters['ExtendedProperty'])
+            if ($PSBoundParameters['Recursive'])
             {
-                $MembersTableProperty += 'Enabled', 'PasswordExpired', 'DistinguishedName'
+                $MembersTableProperty += 'Nested'
+            }
+
+            if ($PSBoundParameters['MembersProperty'])
+            {
+                $MembersTableProperty += $PSBoundParameters['MembersProperty']
             }
 
             # Create array with all required properties/attributes for AD object queries
@@ -344,19 +349,26 @@ function Invoke-ADGroupMembershipMonitoring
             $KnownInputFormat = 'yyyyMMdd-HH:mm:ss', $ChangesDateTimeFormat
 
             # HTML blocks for Report
-            $PostContent = "<p style=`"font-size:10pt`">" +
-            "<strong>Report created:</strong> $(Get-Date -Format $ReporCreatedDateTimeFormat)<br>" +
-            "<strong>Account:</strong> $env:USERDOMAIN\$($env:USERNAME) on $($env:COMPUTERNAME)" +
+            $ReporModuleName     = $Script:ModuleName
+            $ReportModuleVersion = (Get-Module -Name $ReporModuleName).Version
+            $PostContent = "<h3>Report</h3>"
+            $PostContent += "<p>" +
+            "<strong>Created:</strong> $(Get-Date -Format $ReporCreatedDateTimeFormat)<br>" +
+            "<strong>Account:</strong> $env:USERDOMAIN\$($env:USERNAME) on $($env:COMPUTERNAME)<br>" +
+            "<strong>Module:</strong> $ReporModuleName version $ReportModuleVersion" +
             "</p>"
 
+            $ColumnHeaderBackgroundColor = '#A5D7D2'
             $Head = "<style>" +
             "body {background-color:white; font-family:Calibri; font-size:11pt;}" +
             "p {font-size:10pt; margin-bottom:10;}" +
+            "p.footer {font-size:10pt; margin-bottom:10; margin-top:40px;}" +
             "h2 {font-family:Calibri;}" +
             "h3 {font-family:Calibri; margin-top:40px;}" +
             "table {border-width:1px; border-style:solid; border-color:black; border-collapse:collapse;}" +
-            "th {border-width:1px; padding:3px; border-style:solid; border-color:black; background-color:#6495ED;}" +
+            "th {border-width:1px; padding:2px; border-style:solid; border-color:black; background-color:$ColumnHeaderBackgroundColor;}" +
             "td {border-width:1px; padding-right:2px; padding-left:2px; padding-top:0px; padding-bottom:0px; border-style:solid; border-color:black; background-color:white;}" +
+            "td.HeaderColumn {font-weight: bold; background-color:$ColumnHeaderBackgroundColor;}" +
             "</style>"
             #EndRegion
 
@@ -665,7 +677,6 @@ function Invoke-ADGroupMembershipMonitoring
 
                     #Region Get Group Membership
                     $GroupMemberSplatting = @{}
-                    $GroupMemberSplatting.Identity = $ADGroup
 
                     if ($PSBoundParameters['Server'])
                     {
@@ -674,8 +685,13 @@ function Invoke-ADGroupMembershipMonitoring
 
                     if ($PSBoundParameters['Recursive'])
                     {
+                        # Collect direct group membeship to determine value for 'Nested' property
+                        $ADGroupMembersDirect = Get-ADGroupMember -Identity $ADGroup @GroupMemberSplatting -ErrorAction Stop -ErrorVariable ErrorProcessGetADGroupMember
+
                         $GroupMemberSplatting.Recursive = $true
                     }
+
+                    $GroupMemberSplatting.Identity = $ADGroup
 
                     $ADGroupMembers = Get-ADGroupMember @GroupMemberSplatting -ErrorAction Stop -ErrorVariable ErrorProcessGetADGroupMember
 
@@ -688,7 +704,7 @@ function Invoke-ADGroupMembershipMonitoring
                     {
                         $ReferenceObject = $Members
 
-                        Write-Verbose -Message ("    [i] AD Group has {0} members" -f $Members.Count)
+                        Write-Verbose -Message ("    [i] AD Group has {0} members" -f @($Members).Count)
                     }
                     else
                     {
@@ -960,9 +976,22 @@ function Invoke-ADGroupMembershipMonitoring
 
                             foreach ($PropertyName in $MembersTableProperty)
                             {
-                                $PropertyValue = $null
-                                $PropertyValue = if ($MemberItem.Contains($PropertyName)) { $MemberItem.$PropertyName.ToString() }
-                                $ListItem.Add($PropertyName, $PropertyValue)
+                                switch ($PropertyName)
+                                {
+                                    'Nested'
+                                    {
+                                        # validate if object is direct member in group
+                                        $PropertyValue = $null
+                                        $PropertyValue = if($MemberItem.SID -notin $ADGroupMembersDirect.SID) { $true }
+                                        $ListItem.Add($PropertyName, $PropertyValue)
+                                    }
+                                    Default
+                                    {
+                                        $PropertyValue = $null
+                                        $PropertyValue = if ($MemberItem.Contains($PropertyName)) { $MemberItem.$PropertyName.ToString() }
+                                        $ListItem.Add($PropertyName, $PropertyValue)
+                                    }
+                                }
                             }
 
                             $null = $MemberList.Add([PSCustomObject]$ListItem)
@@ -972,16 +1001,15 @@ function Invoke-ADGroupMembershipMonitoring
                         #EndRegion
 
                         #Region Group Summary
-                        $GroupSummary = [ordered]@{}
-
-                        foreach ($PropertyName in $GroupSummaryTableProperty)
+                        $GroupSummary = foreach ($PropertyName in $GroupSummaryTableProperty)
                         {
                             $PropertyValue = $null
                             $PropertyValue = if ($ADGroup.Contains($PropertyName)) { $ADGroup.$PropertyName.ToString() }
-                            $GroupSummary.Add($PropertyName, $PropertyValue)
+                            [PSCustomObject]@{
+                                Property = $PropertyName
+                                Value = $PropertyValue
+                            }
                         }
-
-                        $GroupSummary = [PSCustomObject]$GroupSummary
                         #EndRegion
 
                         #Region HTML Report / Email
@@ -993,12 +1021,32 @@ function Invoke-ADGroupMembershipMonitoring
                         if (-not ($PSBoundParameters['ExcludeSummary']))
                         {
                             $HtmlGroupSummaryPreContent = "<h3>Summary</h3>"
-                            $HtmlGroupSummary = $GroupSummary | ConvertTo-Html -PreContent $HtmlGroupSummaryPreContent -Fragment -As List | Out-String
+                            #$HtmlGroupSummary = $GroupSummary | ConvertTo-Html -PreContent $HtmlGroupSummaryPreContent -Fragment -As List | Out-String
+                            $HtmlTable = $GroupSummary | ConvertTo-Html -Fragment
+                            [xml]$XML = $HtmlTable
+
+                            foreach ($TableRow in $XML.table.SelectNodes("tr"))
+                            {
+                                if ($TableRow.th)
+                                {
+                                    # Remove the header row
+                                    $SelectedNodes = $TableRow.SelectNodes("th")
+                                    $null = $SelectedNodes | ForEach-Object { $_.ParentNode.RemoveChild($_) }
+                                }
+                                # Formatting for the table rows: add 'class' to the first cell (<td>)
+                                if ($TableRow.td)
+                                {
+                                    # Tag the TD with a custom 'class'
+                                    $TableRow.SelectNodes("td")[0].SetAttribute("class","HeaderColumn")
+                                }
+                            }
+
+                            $HtmlGroupSummary = ($HtmlGroupSummaryPreContent + $XML.OuterXml) | Out-String
                         }
 
                         if ($ChangeList -and (-not ($PSBoundParameters['ExcludeChanges'])))
                         {
-                            $HtmlChangeListPreContent = "<h3>Membership Change</h3>"
+                            $HtmlChangeListPreContent = "<h3>Membership Changes</h3>"
                             $HtmlChangeListPreContent += "<p><i>The membership of this group changed. See the following Added or Removed members.</i></p>"
                             $HtmlChangeList = $ChangeList | Sort-Object -Property DateTime -Descending | ConvertTo-Html -PreContent $HtmlChangeListPreContent -Fragment | Out-String
 
@@ -1006,8 +1054,9 @@ function Invoke-ADGroupMembershipMonitoring
                         }
                         else
                         {
-                            $Body += "<h3>Membership Change</h3>"
-                            $Body += "<p><i>No changes.</i></p>"
+                            $HtmlChangeListPreContent = "<h3>Membership Changes</h3>"
+                            $HtmlChangeListPreContent += "<p><i>No changes since last check</i></p>"
+                            $HtmlChangeList = ConvertTo-Html -PreContent $HtmlChangeListPreContent -Fragment | Out-String
 
                             $MailPriority = 'Normal'
                         }
@@ -1017,9 +1066,6 @@ function Invoke-ADGroupMembershipMonitoring
                             $HtmlChangeHistoryListPreContent = "<h3>Change History</h3>"
                             $HtmlChangeHistoryListPreContent += "<p><i>List of previous changes on this group observed by the script</i></p>"
                             $HtmlChangeHistoryList = $ChangeHistoryList | Sort-Object -Property DateTime -Descending | ConvertTo-Html -PreContent $HtmlChangeHistoryListPreContent -Fragment | Out-String
-
-                            $HtmlChangeHistoryList = $HtmlChangeHistoryList -replace "Added", "<font color=`"green`"><b>Added</b></font>"
-                            $HtmlChangeHistoryList = $HtmlChangeHistoryList -replace "Removed", "<font color=`"red`"><b>Removed</b></font>"
                         }
 
                         if ($MemberList -and $PSBoundParameters['IncludeMembers'])
@@ -1030,6 +1076,7 @@ function Invoke-ADGroupMembershipMonitoring
                         }
 
                         $Body = ConvertTo-Html -Head $Head -Body $PreContent, $HtmlGroupSummary, $HtmlChangeList, $HtmlChangeHistoryList, $HtmlMemberList, $PostContent | Out-String
+                        $Body = $Body.Replace("Added", "<font color=`"green`"><b>Added</b></font>").Replace("Removed", "<font color=`"red`"><b>Removed</b></font>")
 
                         if ($PSBoundParameters['OneReport'])
                         {
@@ -1062,6 +1109,7 @@ function Invoke-ADGroupMembershipMonitoring
                                 From       = $EmailFrom
                                 Subject    = $EmailSubject
                                 Body       = $Body
+                                Encoding   = $EmailEncoding
                                 Priority   = $MailPriority
                                 SmtpServer = $EmailServer
                                 Port       = $EmailPort
@@ -1149,6 +1197,7 @@ function Invoke-ADGroupMembershipMonitoring
                     From        = $EmailFrom
                     Subject     = $EmailSubject
                     Body        = "<b>See the report(s) in the attachment</b>"
+                    Encoding    = $EmailEncoding
                     Priority    = $OneReportMailPriority
                     SmtpServer  = $EmailServer
                     Port        = $EmailPort
