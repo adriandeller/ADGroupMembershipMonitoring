@@ -3,19 +3,17 @@ break
 Import-Module -Name ADGroupMembershipMonitoring
 
 $paramADGroupMembershipMonitoring = @{
-    Path                = 'C:\Scripts\ADGroupMembershipMonitoring'
-    Group               = 'Domain Admins'
+    Path                = 'C:\Scripts\ADGroupMembershipMonitoring\HighPrivilegedGroups'
+    LDAPFilter          = '(|(adminCount=1)(Name=DnsAdmins))'
     Recursive           = $true
-    EmailSubjectPrefix  = '[Group Membership Reporting]'
+    EmailSubjectPrefix  = '[High Privileged Groups]'
     EmailTo             = 'it-department@company.com'
     EmailFrom           = 'noreply@company.com'
     EmailServer         = 'mail.company.com'
+    IncludeMembers      = $true
+    SaveReport          = $true
     SendEmail           = $true
     ForceAction         = $true
-    IncludeMembers      = $true
-    ExcludeSummary      = $true
-    ExcludeChanges      = $true
-    ExcludeHistory      = $true
 }
 
 Invoke-ADGroupMembershipMonitoring @paramADGroupMembershipMonitoring

@@ -6,16 +6,12 @@ $paramADGroupMembershipMonitoring = @{
     Path                = 'C:\Scripts\ADGroupMembershipMonitoring'
     Group               = 'Domain Admins'
     Recursive           = $true
-    EmailSubjectPrefix  = '[Group Membership Reporting]'
+    EmailSubjectPrefix  = '[AD Group Membership Monitoring]'
     EmailTo             = 'it-department@company.com'
     EmailFrom           = 'noreply@company.com'
     EmailServer         = 'mail.company.com'
-    SendEmail           = $true
-    ForceAction         = $true
+    SaveReport          = $true
     IncludeMembers      = $true
-    ExcludeSummary      = $true
-    ExcludeChanges      = $true
-    ExcludeHistory      = $true
 }
 
 Invoke-ADGroupMembershipMonitoring @paramADGroupMembershipMonitoring

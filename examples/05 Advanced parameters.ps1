@@ -3,15 +3,16 @@ break
 Import-Module -Name ADGroupMembershipMonitoring
 
 $paramADGroupMembershipMonitoring = @{
-    Path                = 'C:\Scripts\ADGroupMembershipMonitoring'
-    Group               = 'Domain Admins'
+    Path                = 'C:\Scripts\ADGroupMembershipMonitoring\HighPrivilegedGroups'
+    Group               = 'hr-department'
     Recursive           = $true
-    EmailSubjectPrefix  = '[Group Membership Reporting]'
-    EmailTo             = 'it-department@company.com'
+    EmailSubjectPrefix  = '[HR Group Membership Monitoring]'
+    #EmailTo             = 'it-department@company.com'
+    EmailToManger       = $true
+    EmailToSelf         = $true
     EmailFrom           = 'noreply@company.com'
     EmailServer         = 'mail.company.com'
     SendEmail           = $true
-    ForceAction         = $true
     IncludeMembers      = $true
     ExcludeSummary      = $true
     ExcludeChanges      = $true
