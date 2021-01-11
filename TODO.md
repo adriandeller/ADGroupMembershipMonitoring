@@ -9,7 +9,7 @@
 - [x] add parameter 'ExcludeHistory' to exclude the Change History in the Report
 - [x] add parameter 'ExcludeChanges' to exclude the Changes in the Report
 - [x] add parameter 'IncludeMembers' to include the Members in the Report
-- [ ] add parameter 'IncludeManagers' to include the Managers/Owners in the Report
+- [x] add parameter 'IncludeManagers' to include the Managers/Owners in the Report
 - [x] add parameter 'EmailToSelf' to send email to the group's mail-address
 - [x] add parameter 'EmailToManger' send email to the group's manager(s) mail-address (related attributes: managedBy, msExchCoManagedByLink)
 - [x] add parameter 'Recursive' for indirect membership through group nesting

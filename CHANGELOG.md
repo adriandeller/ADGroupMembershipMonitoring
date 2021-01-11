@@ -14,6 +14,7 @@
 - add parameter 'EmailSubjectPrefix'
 - add parameter 'EmailCredential'
 - add parameter 'IncludeMembers'
+- add parameter 'IncludeManagers
 - add parameter 'ExcludeSummary'
 - add parameter 'ExcludeChanges'
 - add parameter 'ExcludeHistory'
@@ -25,6 +26,7 @@
 - rename parameter 'HTMLLog' to 'SaveReport'
 - change parameter 'ExtendedProperty' from switch to accept an array of strings
 - improve HTML code for tables and style
+- change AD attribute used as the unique identifier for AD objects to 'SID'
 
 **Removed**
 

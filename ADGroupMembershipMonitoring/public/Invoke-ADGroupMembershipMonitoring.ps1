@@ -9,20 +9,18 @@ function Invoke-ADGroupMembershipMonitoring
     .PARAMETER Group
         Specify the group(s) to query in Active Directory.
         You can also specify the 'DN','GUID','SID' or the 'Name' of your group(s).
-        Using 'Domain\Name' will also work.
     .PARAMETER Recursive
         By default, search for group members with direct membership,
         Specify this switch and group members with indirect membership through group nesting will also be searched
     .PARAMETER SearchRoot
-        Specify the DN, GUID or canonical name of the domain or container to search.
+        Specify the DN, GUID or canonical name of the domain or container to search
         By default, the script searches the entire sub-tree of which SearchRoot is the topmost object (sub-tree search).
-        This default behavior can be altered by using the SearchScope parameter.
+        This default behavior can be altered by using the SearchScope parameter
     .PARAMETER SearchScope
         Specify one of these parameter values
-            'Base' Limits the search to the base (SearchRoot) object.
-                The result contains a maximum of one object.
-            'OneLevel' Searches the immediate child objects of the base (SearchRoot) object, excluding the base object.
-            'Subtree'   Searches the whole sub-tree, including the base (SearchRoot) object and all its child objects.
+            'Base' Limits the search to the base (SearchRoot) object. The result contains a maximum of one object
+            'OneLevel' Searches the immediate child objects of the base (SearchRoot) object, excluding the base object
+            'Subtree'   Searches the whole sub-tree, including the base (SearchRoot) object and all its child objects
     .PARAMETER GroupScope
         Specify the group scope of groups you want to find. Acceptable values are:
             'Global';
@@ -37,9 +35,9 @@ function Invoke-ADGroupMembershipMonitoring
     .PARAMETER LDAPFilter
         Specify the LDAP filter you want to use to find groups
     .PARAMETER File
-        Specify the File where the Group are listed. DN, SID, GUID, or Domain\Name of the group are accepted.
+        Specify the File where the Group are listed. DN, SID, GUID, or Domain\Name of the group are accepted
     .PARAMETER EmailServer
-        Specify the Email Server IPAddress/FQDN.
+        Specify the Email Server IPAddress/FQDN
     .PARAMETER EmailPort
         Specify the port for the Email Server
     .PARAMETER EmailTo
@@ -51,7 +49,7 @@ function Invoke-ADGroupMembershipMonitoring
     .PARAMETER EmailFrom
         Specify the Email Address of the Sender. Example: Reporting@fx.lab
     .PARAMETER EmailEncoding
-        Specify the Body and Subject Encoding to use in the Email.
+        Specify the Body and Subject Encoding to use in the Email
         Default is UTF8.
     .PARAMETER EmailSubjectPrefix
         Specify a prefix for the Email subject
@@ -59,26 +57,28 @@ function Invoke-ADGroupMembershipMonitoring
         Specify the Domain Controller to use.
         Aliases: DomainController, Service
     .PARAMETER SendEmail
-        Specify if you want to send an Email including the HTML Report.
+        Specify if you want to send an Email including the HTML Report
     .PARAMETER SaveReport
         Specify if you want to save the HTML Report.
         It will be saved under the "HTML" directory.
     .PARAMETER IncludeMembers
-        Specify if you want to include all members in the Report.
+        Specify if you want to include a table with the members in the Report
+    .PARAMETER IncludeManagers
+        Specify if you want to include a table with the managers in the Report
     .PARAMETER ExcludeChanges
         Specify if you want to exclude changes in the Report.
     .PARAMETER ExcludeHistory
-        Specify if you want to exclude the change history in the Report.
+        Specify if you want to exclude the change history in the Report
     .PARAMETER ExcludeSummary
-        Specify if you want to exclude the summary at the top of the Report.
+        Specify if you want to exclude the summary at the top of the Report
     .PARAMETER ForceAction
-        Specify if you want to send an Email (with the HTML Report) and save a HTML Report each time.
+        Specify if you want to send an Email (with the HTML Report) and save a HTML Report each time
     .PARAMETER OneReport
         Specify if you want to only send one email with all group report as attachment
     .PARAMETER ExtendedProperty
         Specify if you want to add Enabled and PasswordExpired Attribute on members in the report
     .PARAMETER EmailCredential
-        Specify alternative credential to use. By default it will use the current context account.
+        Specify alternative credential to use. By default it will use the current context account
     .PARAMETER Path
         Specify a path for data storage, where subfolders will be created for the CSV and HTML files
     .EXAMPLE
@@ -211,6 +211,10 @@ function Invoke-ADGroupMembershipMonitoring
 
         [Parameter()]
         [Switch]
+        $IncludeManagers,
+
+        [Parameter()]
+        [Switch]
         $ExcludeChanges,
 
         [Parameter()]
@@ -320,6 +324,7 @@ function Invoke-ADGroupMembershipMonitoring
             $MembershipChangeTableProperty = 'DateTime', 'State', 'Name', 'SamAccountName', 'ObjectClass'
             $ChangeHistoryTableProperty = 'DateTime', 'State', 'Name', 'SamAccountName', 'ObjectClass'
             $MembersTableProperty = 'Name', 'SamAccountName', 'ObjectClass'
+            $ManagersTableProperty = 'Name', 'SamAccountName', 'ObjectClass', 'Mail'
 
             # Additionally required properties
             $AdditionalProperty = 'mail', 'managedBy', 'msExchCoManagedByLink'
@@ -337,7 +342,8 @@ function Invoke-ADGroupMembershipMonitoring
             }
 
             # Create array with all required properties/attributes for AD object queries
-            $ADObjectPropertyArray = $ChangeHistoryCsvProperty + $MembershipCsvProperty + $GroupSummaryTableProperty + $MembershipChangeTableProperty + $ChangeHistoryTableProperty + $MembersTableProperty + $AdditionalProperty |
+            $ADObjectPropertyArray = $ChangeHistoryCsvProperty + $MembershipCsvProperty + $GroupSummaryTableProperty + $MembershipChangeTableProperty `
+                + $ChangeHistoryTableProperty + $MembersTableProperty + $ManagersTableProperty + $AdditionalProperty |
                 Select-Object -Unique -ExcludeProperty $SpecialProperty
 
             # Filter properties for valid Computer object attributes
@@ -646,8 +652,8 @@ function Invoke-ADGroupMembershipMonitoring
             # Process every group proided by any ParameterSet
             foreach ($GroupListItem in $GroupList)
             {
-                $Changes, $ADGroup, $ChangeList, $ChangeHistoryList, $MemberList, $ReferenceObject, $DifferenceObject = $null
-                $PreContent, $HtmlGroupSummary, $HtmlChangeList, $HtmlChangeHistoryList, $HtmlMemberList = $null
+                $Changes, $ADGroup, $ChangeList, $ChangeHistoryList, $MemberList, $ManagerList, $ReferenceObject, $DifferenceObject = $null
+                $PreContent, $HtmlGroupSummary, $HtmlChangeList, $HtmlChangeHistoryList, $HtmlMemberList, $HtmlManagerList = $null
 
                 try
                 {
@@ -1022,6 +1028,22 @@ function Invoke-ADGroupMembershipMonitoring
                         Write-Verbose -Message "    [+] Created Member List"
                         #EndRegion
 
+                        #Region Managers
+                        if ($PSBoundParameters['EmailToManger'] -or $PSBoundParameters['IncludeManagers'])
+                        {
+                            $ManagerList = New-Object System.Collections.Generic.List[Object]
+
+                            foreach ($Attribute in ('managedBy', 'msExchCoManagedByLink'))
+                            {
+                                $ADUser = $null
+                                $ADUser = $ADGroup.$Attribute | Get-ADUser -ErrorAction SilentlyContinue | Select-Object -Property $ManagersTableProperty
+                                $null = $ManagerList.Add($ADUser)
+                            }
+
+                            Write-Verbose -Message "    [+] Created Manager List"
+                        }
+                        #EndRegion
+
                         #Region Group Summary
                         $GroupSummary = foreach ($PropertyName in $GroupSummaryTableProperty)
                         {
@@ -1097,21 +1119,24 @@ function Invoke-ADGroupMembershipMonitoring
                             $HtmlMemberList = $MemberList | Sort-Object -Property SamAccountName -Descending | ConvertTo-Html -PreContent $HtmlMemberListPreContent -Fragment | Out-String
                         }
 
-                        $Body = ConvertTo-Html -Head $Head -Body $PreContent, $HtmlGroupSummary, $HtmlChangeList, $HtmlChangeHistoryList, $HtmlMemberList, $PostContent | Out-String
+                        if ($ManagerList -and $PSBoundParameters['IncludeManagers'])
+                        {
+                            $HtmlManagerListPreContent = "<h3>Managers</h3>"
+                            $HtmlManagerListPreContent += "<p><i>List of all managers</i></p>"
+                            $HtmlManagerList = $ManagerList | Sort-Object -Property SamAccountName -Descending | ConvertTo-Html -PreContent $HtmlManagerListPreContent -Fragment | Out-String
+                        }
+
+                        $Body = ConvertTo-Html -Head $Head -Body $PreContent, $HtmlGroupSummary, $HtmlChangeList, $HtmlChangeHistoryList, $HtmlMemberList, $HtmlManagerList, $PostContent | Out-String
                         $Body = $Body.Replace("Added", "<font color=`"green`"><b>Added</b></font>").Replace("Removed", "<font color=`"red`"><b>Removed</b></font>")
                         #EndRegion
 
                         #Region Sending Email
                         if ($PSBoundParameters['SendEMail'] -and $PSBoundParameters['EmailToManger'])
                         {
-                            $ADGroupManagers = foreach ($Attribute in ('managedBy', 'msExchCoManagedByLink'))
+                            $ManagerListMail = $ManagerList.mail
+                            if ($ManagerListMail)
                             {
-                                $ADGroup.$Attribute | Get-ADUser -Property mail -ErrorAction SilentlyContinue | Select-Object -ExpandProperty mail
-                            }
-
-                            if ($ADGroupManagers)
-                            {
-                                $EmailTo += $ADGroupManagers
+                                $EmailTo += $ManagerListMail
                             }
                         }
 
