@@ -42,7 +42,7 @@ function Invoke-ADGroupMembershipMonitoring
         Specify the port for the Email Server
     .PARAMETER EmailTo
         Specify the Email address(es) of the recipients. Example: fxcat@fx.lab
-    .PARAMETER EmailToManger
+    .PARAMETER EmailToManager
         Specify if you want to send the Email to the group's manager(s)
     .PARAMETER EmailToSelf
         Specify if you want to send the Email to the group's mail address (Distribution Group only)
@@ -170,7 +170,7 @@ function Invoke-ADGroupMembershipMonitoring
 
         [Parameter()]
         [switch]
-        $EmailToManger,
+        $EmailToManager,
 
         [Parameter()]
         [switch]
@@ -247,7 +247,7 @@ function Invoke-ADGroupMembershipMonitoring
     Begin
     {
         #Region Parameter validation
-        if ($PSBoundParameters['SendEmail'] -and ($PSBoundParameters['EmailToManger'] -or $PSBoundParameters['EmailToSelf']))
+        if ($PSBoundParameters['SendEmail'] -and ($PSBoundParameters['EmailToManager'] -or $PSBoundParameters['EmailToSelf']))
         {
             if(-not ($PSBoundParameters['EmailFrom'] -and $PSBoundParameters['EmailServer']))
             {
@@ -389,10 +389,9 @@ function Invoke-ADGroupMembershipMonitoring
             $ColumnHeaderBackgroundColor = '#A5D7D2'
             $Head = "<style>" +
             "body {background-color:white; font-family:Calibri; font-size:11pt;}" +
-            "p {font-size:10pt; margin-bottom:10;}" +
-            "p.footer {font-size:10pt; margin-bottom:10; margin-top:40px;}" +
+            "p {font-size:10pt; margin-top:0px; margin-bottom:0;}" +
             "h2 {font-family:Calibri;}" +
-            "h3 {font-family:Calibri; margin-top:40px;}" +
+            "h3 {font-family:Calibri; margin-top:40px; margin-bottom:10px;}" +
             "table {border-width:1px; border-style:solid; border-color:black; border-collapse:collapse;}" +
             "th {border-width:1px; padding:2px; border-style:solid; border-color:black; background-color:$ColumnHeaderBackgroundColor;}" +
             "td {border-width:1px; padding-right:2px; padding-left:2px; padding-top:0px; padding-bottom:0px; border-style:solid; border-color:black; background-color:white;}" +
@@ -1029,7 +1028,7 @@ function Invoke-ADGroupMembershipMonitoring
                         #EndRegion
 
                         #Region Managers
-                        if ($PSBoundParameters['EmailToManger'] -or $PSBoundParameters['IncludeManagers'])
+                        if ($PSBoundParameters['EmailToManager'] -or $PSBoundParameters['IncludeManagers'])
                         {
                             $ManagerList = New-Object System.Collections.Generic.List[Object]
 
@@ -1131,7 +1130,7 @@ function Invoke-ADGroupMembershipMonitoring
                         #EndRegion
 
                         #Region Sending Email
-                        if ($PSBoundParameters['SendEMail'] -and $PSBoundParameters['EmailToManger'])
+                        if ($PSBoundParameters['SendEMail'] -and $PSBoundParameters['EmailToManager'])
                         {
                             $ManagerListMail = $ManagerList.mail
                             if ($ManagerListMail)
@@ -1195,6 +1194,7 @@ function Invoke-ADGroupMembershipMonitoring
                             Send-MailMessage @paramMailMessage -ErrorAction Stop
 
                             Write-Verbose -Message "    [+] Sent Email"
+                            Write-Verbose -Message "        [+] To: $EmailTo"
                         }
                         #EndRegion
 
