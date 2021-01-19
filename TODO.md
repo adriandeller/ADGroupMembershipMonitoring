@@ -1,6 +1,6 @@
 # To Do
 
-- [ ] change AD attribute used as the unique identifier for AD objects to 'objectGUID'
+- [ ] change AD attribute used as the immutable identifier for AD objects to 'objectGUID'
 - [ ] add parameter 'LimitHistory' to limit Change History entries in the Report (number entries or timespan ?)
 - [x] add parameter 'LDAPFilter' to gather AD Groups using an LDAP Filter
 - [x] add parameter 'ForceAction' to send an Email and to save the HTML Report regardless of whether a change was found.
