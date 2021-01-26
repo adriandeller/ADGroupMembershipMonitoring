@@ -18,5 +18,5 @@
 - [x] add parameter 'Path' to specify a path to store the CSV and HTML files
 - [x] add parameter 'GroupFilter'
 - [x] add support for Computer and Group object as member of AD Groups
-- [ ] add Current Member Count, Added Member count, Removed Member Count
+- [ ] add details about current member count, added member count, removed member count
 - [x] add column to indicate if it's a direct/indirect member of the group, when using the 'Recursive' parameter
