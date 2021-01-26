@@ -386,16 +386,17 @@ function Invoke-ADGroupMembershipMonitoring
             "<strong>Module:</strong> $ReporModuleName version $ReportModuleVersion" +
             "</p>"
 
-            $ColumnHeaderBackgroundColor = '#A5D7D2'
+            $TableHeaderBackgroundColor = Get-PSFConfigValue -FullName  "$ModuleName.HTML.TableHeaderBackgroundColor"
+
             $Head = "<style>" +
             "body {background-color:white; font-family:Calibri; font-size:11pt;}" +
             "p {font-size:10pt; margin-top:0px; margin-bottom:0;}" +
             "h2 {font-family:Calibri;}" +
             "h3 {font-family:Calibri; margin-top:40px; margin-bottom:10px;}" +
             "table {border-width:1px; border-style:solid; border-color:black; border-collapse:collapse;}" +
-            "th {border-width:1px; padding:2px; border-style:solid; border-color:black; background-color:$ColumnHeaderBackgroundColor;}" +
+            "th {border-width:1px; padding:2px; border-style:solid; border-color:black; background-color:$TableHeaderBackgroundColor;}" +
             "td {border-width:1px; padding-right:2px; padding-left:2px; padding-top:0px; padding-bottom:0px; border-style:solid; border-color:black; background-color:white;}" +
-            "td.HeaderColumn {font-weight: bold; background-color:$ColumnHeaderBackgroundColor;}" +
+            "td.HeaderColumn {font-weight: bold; background-color:$TableHeaderBackgroundColor;}" +
             "</style>"
             #EndRegion
 
