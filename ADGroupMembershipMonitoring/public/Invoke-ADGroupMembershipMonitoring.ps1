@@ -312,12 +312,12 @@ function Invoke-ADGroupMembershipMonitoring
             }
             else
             {
-                $EmailSubjectPrefix = Get-PSFConfigValue -FullName  "$ModuleName.Email.EmailSubjectPrefix"
+                $EmailSubjectPrefix = Get-PSFConfigValue -FullName "$ModuleName.Email.EmailSubjectPrefix"
             }
 
             # CSV columns
-            $ChangeHistoryCsvProperty = Get-PSFConfigValue -FullName  "$ModuleName.CSV.ChangeHistoryProperty"
-            $MembershipCsvProperty = Get-PSFConfigValue -FullName  "$ModuleName.CSV.MembershipProperty"
+            $ChangeHistoryCsvProperty = Get-PSFConfigValue -FullName "$ModuleName.CSV.ChangeHistoryProperty"
+            $MembershipCsvProperty = Get-PSFConfigValue -FullName "$ModuleName.CSV.MembershipProperty"
 
             # Report table columns
             $GroupSummaryTableProperty = 'SamAccountName', 'Description', 'DistinguishedName', 'CanonicalName', 'SID', 'GroupScope', 'GroupCategory', 'gidNumber'
@@ -386,7 +386,7 @@ function Invoke-ADGroupMembershipMonitoring
             "<strong>Module:</strong> $ReporModuleName version $ReportModuleVersion" +
             "</p>"
 
-            $TableHeaderBackgroundColor = Get-PSFConfigValue -FullName  "$ModuleName.HTML.TableHeaderBackgroundColor"
+            $TableHeaderBackgroundColor = Get-PSFConfigValue -FullName "$ModuleName.HTML.TableHeaderBackgroundColor"
 
             $Head = "<style>" +
             "body {background-color:white; font-family:Calibri; font-size:11pt;}" +
@@ -418,7 +418,7 @@ function Invoke-ADGroupMembershipMonitoring
                 Write-Verbose -Message "    [i] Folder for data storage exists: '$Path'"
             }
 
-            $Subfolders = Get-PSFConfig -FullName  "$ModuleName.Folder.*"
+            $Subfolders = Get-PSFConfig -FullName "$ModuleName.Folder.*"
 
             foreach ($Subfolder in $Subfolders)
             {
