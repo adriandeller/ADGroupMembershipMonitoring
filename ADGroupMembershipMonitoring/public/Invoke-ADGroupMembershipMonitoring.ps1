@@ -306,6 +306,9 @@ function Invoke-ADGroupMembershipMonitoring
                 throw 'Unable to get configuration data using PSFramework'
             }
 
+            # Email default settings
+            $MailPriority = 'Normal'
+
             if ($PSBoundParameters['EmailSubjectPrefix'])
             {
                 $EmailSubjectPrefix = $PSBoundParameters['EmailSubjectPrefix']
@@ -342,8 +345,7 @@ function Invoke-ADGroupMembershipMonitoring
             }
 
             # Create array with all required properties/attributes for AD object queries
-            $ADObjectPropertyArray = $ChangeHistoryCsvProperty + $MembershipCsvProperty + $GroupSummaryTableProperty + $MembershipChangeTableProperty `
-                + $ChangeHistoryTableProperty + $MembersTableProperty + $ManagersTableProperty + $AdditionalProperty |
+            $ADObjectPropertyArray = $ChangeHistoryCsvProperty + $MembershipCsvProperty + $GroupSummaryTableProperty + $MembershipChangeTableProperty + $ChangeHistoryTableProperty + $MembersTableProperty + $ManagersTableProperty + $AdditionalProperty |
                 Select-Object -Unique -ExcludeProperty $SpecialProperty
 
             # Filter properties for valid Computer object attributes
@@ -361,11 +363,10 @@ function Invoke-ADGroupMembershipMonitoring
             $PSDefaultParameterValues = @{
                 'Convert-DateTimeString:Verbose' = $false
                 'Get-ADObjectDetails:Verbose' = $false
-                'Get-ADComputer:Property' = $ADComputerProperty
-                'Get-ADUser:Property' = $ADUserProperty
-                'Get-ADGroup:Property' = $ADGroupProperty
+                'Get-ADComputer:Properties' = $ADComputerProperty
+                'Get-ADUser:Properties' = $ADUserProperty
+                'Get-ADGroup:Properties' = $ADGroupProperty
             }
-            #
 
             # Set the Date and Time formats
             $ChangesDateTimeFormat = 's'                         # format for export to CSV files
@@ -649,7 +650,7 @@ function Invoke-ADGroupMembershipMonitoring
             #EndRegion
 
             #Region Process groups
-            # Process every group proided by any ParameterSet
+            # Process every group provided by any ParameterSet
             foreach ($GroupListItem in $GroupList)
             {
                 $Changes, $ADGroup, $ChangeList, $ChangeHistoryList, $MemberList, $ManagerList, $ReferenceObject, $DifferenceObject = $null
@@ -1037,7 +1038,9 @@ function Invoke-ADGroupMembershipMonitoring
                             {
                                 $ADUser = $null
                                 $ADUser = $ADGroup.$Attribute | Get-ADUser -ErrorAction SilentlyContinue | Select-Object -Property $ManagersTableProperty
-                                $null = $ManagerList.Add($ADUser)
+                                @($ADUser).ForEach{
+                                    $null = $ManagerList.Add($PSItem)
+                                }
                             }
 
                             Write-Verbose -Message "    [+] Created Manager List"
@@ -1088,42 +1091,69 @@ function Invoke-ADGroupMembershipMonitoring
                             $HtmlGroupSummary = ($HtmlGroupSummaryPreContent + $XML.OuterXml) | Out-String
                         }
 
-                        if ($ChangeList -and (-not ($PSBoundParameters['ExcludeChanges'])))
+                        if (-not ($PSBoundParameters['ExcludeChanges']))
                         {
                             $HtmlChangeListPreContent = "<h3>Membership Changes</h3>"
-                            $HtmlChangeListPreContent += "<p><i>The membership of this group changed. See the following Added or Removed members.</i></p>"
-                            $HtmlChangeList = $ChangeList | Sort-Object -Property DateTime -Descending | ConvertTo-Html -PreContent $HtmlChangeListPreContent -Fragment | Out-String
 
-                            $MailPriority = 'High'
+                            if ($ChangeList)
+                            {
+                                $HtmlChangeListPreContent += "<p><i>The membership of this group changed. See the following Added or Removed members.</i></p>"
+                                $HtmlChangeList = $ChangeList | Sort-Object -Property DateTime -Descending | ConvertTo-Html -PreContent $HtmlChangeListPreContent -Fragment | Out-String
+                                $MailPriority = 'High'
+                            }
+                            else
+                            {
+                                $HtmlChangeListPreContent += "<p><i>No membership changes since last check</i></p>"
+                                $HtmlChangeList = ConvertTo-Html -PreContent $HtmlChangeListPreContent -Fragment | Out-String
+                            }
                         }
-                        else
-                        {
-                            $HtmlChangeListPreContent = "<h3>Membership Changes</h3>"
-                            $HtmlChangeListPreContent += "<p><i>No changes since last check</i></p>"
-                            $HtmlChangeList = ConvertTo-Html -PreContent $HtmlChangeListPreContent -Fragment | Out-String
 
-                            $MailPriority = 'Normal'
-                        }
-
-                        if ($ChangeHistoryList -and (-not ($PSBoundParameters['ExcludeHistory'])))
+                        if (-not ($PSBoundParameters['ExcludeHistory']))
                         {
                             $HtmlChangeHistoryListPreContent = "<h3>Change History</h3>"
-                            $HtmlChangeHistoryListPreContent += "<p><i>List of previous changes on this group observed by the script</i></p>"
-                            $HtmlChangeHistoryList = $ChangeHistoryList | Sort-Object -Property DateTime -Descending | ConvertTo-Html -PreContent $HtmlChangeHistoryListPreContent -Fragment | Out-String
+
+                            if ($ChangeHistoryList)
+                            {
+                                $HtmlChangeHistoryListPreContent += "<p><i>List of previous changes on this group observed by the script</i></p>"
+                                $HtmlChangeHistoryList = $ChangeHistoryList | Sort-Object -Property DateTime -Descending | ConvertTo-Html -PreContent $HtmlChangeHistoryListPreContent -Fragment | Out-String
+                            }
+                            else
+                            {
+                                $HtmlChangeHistoryListPreContent += "<p><i>No change history found</i></p>"
+                                $HtmlChangeHistoryList = ConvertTo-Html -PreContent $HtmlChangeHistoryListPreContent -Fragment | Out-String
+                            }
                         }
 
-                        if ($MemberList -and $PSBoundParameters['IncludeMembers'])
+                        if ($PSBoundParameters['IncludeMembers'])
                         {
                             $HtmlMemberListPreContent = "<h3>Members</h3>"
-                            $HtmlMemberListPreContent += "<p><i>List of all members</i></p>"
-                            $HtmlMemberList = $MemberList | Sort-Object -Property SamAccountName -Descending | ConvertTo-Html -PreContent $HtmlMemberListPreContent -Fragment | Out-String
+
+                            if ($MemberList)
+                            {
+                                $HtmlMemberListPreContent += "<p><i>List of all members</i></p>"
+                                $HtmlMemberList = $MemberList | Sort-Object -Property SamAccountName -Descending | ConvertTo-Html -PreContent $HtmlMemberListPreContent -Fragment | Out-String
+                            }
+                            else
+                            {
+                                $HtmlMemberListPreContent += "<p><i>No members found</i></p>"
+                                $HtmlMemberList = ConvertTo-Html -PreContent $HtmlMemberListPreContent -Fragment | Out-String
+                            }
                         }
 
-                        if ($ManagerList -and $PSBoundParameters['IncludeManagers'])
+                        if ($PSBoundParameters['IncludeManagers'])
                         {
                             $HtmlManagerListPreContent = "<h3>Managers</h3>"
-                            $HtmlManagerListPreContent += "<p><i>List of all managers</i></p>"
-                            $HtmlManagerList = $ManagerList | Sort-Object -Property SamAccountName -Descending | ConvertTo-Html -PreContent $HtmlManagerListPreContent -Fragment | Out-String
+
+                            if ($ManagerList)
+                            {
+                                $HtmlManagerListPreContent += "<p><i>List of all managers</i></p>"
+                                $HtmlManagerList = $ManagerList | Sort-Object -Property SamAccountName -Descending | ConvertTo-Html -PreContent $HtmlManagerListPreContent -Fragment | Out-String
+                            }
+                            else
+                            {
+                                $HtmlManagerListPreContent += "<p><i>No managers found</i></p>"
+                                $HtmlManagerList = ConvertTo-Html -PreContent $HtmlManagerListPreContent -Fragment | Out-String
+                            }
                         }
 
                         $Body = ConvertTo-Html -Head $Head -Body $PreContent, $HtmlGroupSummary, $HtmlChangeList, $HtmlChangeHistoryList, $HtmlMemberList, $HtmlManagerList, $PostContent | Out-String
