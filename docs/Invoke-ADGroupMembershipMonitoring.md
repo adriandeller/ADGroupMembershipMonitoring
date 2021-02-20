@@ -15,39 +15,39 @@ This function is monitoring group(s) in Active Directory and sends an email when
 ### Group (Default)
 ```
 Invoke-ADGroupMembershipMonitoring -Group <String[]> [-Recursive] [-Server <String>] [-EmailFrom <String>]
- [-EmailTo <String[]>] [-EmailServer <String>] [-EmailPort <String>] [-EmailSubjectPrefix <String>]
- [-EmailEncoding <String>] [-EmailCredential <PSCredential>] [-SendEmail] [-SaveReport] [-IncludeMembers]
- [-ExcludeChanges] [-ExcludeHistory] [-ExcludeSummary] [-ForceAction] [-OneReport] [-ExtendedProperty]
- -Path <String> [<CommonParameters>]
+ [-EmailTo <String[]>] [-EmailToManager] [-EmailToSelf] [-EmailServer <String>] [-EmailPort <String>]
+ [-EmailSubjectPrefix <String>] [-EmailEncoding <String>] [-EmailCredential <PSCredential>] [-SendEmail]
+ [-SaveReport] [-IncludeMembers] [-IncludeManagers] [-ExcludeChanges] [-ExcludeHistory] [-ExcludeSummary]
+ [-ForceAction] [-OneReport] [-MembersProperty <String[]>] -Path <String> [<CommonParameters>]
 ```
 
 ### LDAPFilter
 ```
 Invoke-ADGroupMembershipMonitoring [-Recursive] [-SearchRoot <String[]>] [-SearchScope <String>]
- -LDAPFilter <String> [-Server <String>] [-EmailFrom <String>] [-EmailTo <String[]>] [-EmailServer <String>]
- [-EmailPort <String>] [-EmailSubjectPrefix <String>] [-EmailEncoding <String>]
- [-EmailCredential <PSCredential>] [-SendEmail] [-SaveReport] [-IncludeMembers] [-ExcludeChanges]
- [-ExcludeHistory] [-ExcludeSummary] [-ForceAction] [-OneReport] [-ExtendedProperty] -Path <String>
- [<CommonParameters>]
+ -LDAPFilter <String> [-Server <String>] [-EmailFrom <String>] [-EmailTo <String[]>] [-EmailToManager]
+ [-EmailToSelf] [-EmailServer <String>] [-EmailPort <String>] [-EmailSubjectPrefix <String>]
+ [-EmailEncoding <String>] [-EmailCredential <PSCredential>] [-SendEmail] [-SaveReport] [-IncludeMembers]
+ [-IncludeManagers] [-ExcludeChanges] [-ExcludeHistory] [-ExcludeSummary] [-ForceAction] [-OneReport]
+ [-MembersProperty <String[]>] -Path <String> [<CommonParameters>]
 ```
 
 ### ADFilter
 ```
 Invoke-ADGroupMembershipMonitoring [-Recursive] [-SearchRoot <String[]>] [-SearchScope <String>]
  [-GroupScope <String>] [-GroupType <String>] -GroupFilter <String> [-Server <String>] [-EmailFrom <String>]
- [-EmailTo <String[]>] [-EmailServer <String>] [-EmailPort <String>] [-EmailSubjectPrefix <String>]
- [-EmailEncoding <String>] [-EmailCredential <PSCredential>] [-SendEmail] [-SaveReport] [-IncludeMembers]
- [-ExcludeChanges] [-ExcludeHistory] [-ExcludeSummary] [-ForceAction] [-OneReport] [-ExtendedProperty]
- -Path <String> [<CommonParameters>]
+ [-EmailTo <String[]>] [-EmailToManager] [-EmailToSelf] [-EmailServer <String>] [-EmailPort <String>]
+ [-EmailSubjectPrefix <String>] [-EmailEncoding <String>] [-EmailCredential <PSCredential>] [-SendEmail]
+ [-SaveReport] [-IncludeMembers] [-IncludeManagers] [-ExcludeChanges] [-ExcludeHistory] [-ExcludeSummary]
+ [-ForceAction] [-OneReport] [-MembersProperty <String[]>] -Path <String> [<CommonParameters>]
 ```
 
 ### File
 ```
 Invoke-ADGroupMembershipMonitoring [-Recursive] -File <String[]> [-Server <String>] [-EmailFrom <String>]
- [-EmailTo <String[]>] [-EmailServer <String>] [-EmailPort <String>] [-EmailSubjectPrefix <String>]
- [-EmailEncoding <String>] [-EmailCredential <PSCredential>] [-SendEmail] [-SaveReport] [-IncludeMembers]
- [-ExcludeChanges] [-ExcludeHistory] [-ExcludeSummary] [-ForceAction] [-OneReport] [-ExtendedProperty]
- -Path <String> [<CommonParameters>]
+ [-EmailTo <String[]>] [-EmailToManager] [-EmailToSelf] [-EmailServer <String>] [-EmailPort <String>]
+ [-EmailSubjectPrefix <String>] [-EmailEncoding <String>] [-EmailCredential <PSCredential>] [-SendEmail]
+ [-SaveReport] [-IncludeMembers] [-IncludeManagers] [-ExcludeChanges] [-ExcludeHistory] [-ExcludeSummary]
+ [-ForceAction] [-OneReport] [-MembersProperty <String[]>] -Path <String> [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -167,21 +167,6 @@ Aliases:
 Required: False
 Position: Named
 Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ExtendedProperty
-{{ Fill ExtendedProperty Description }}
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: Named
-Default value: False
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
@@ -464,6 +449,66 @@ Accept wildcard characters: False
 
 ```yaml
 Type: SwitchParameter
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -EmailToManager
+{{ Fill EmailToManager Description }}
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -EmailToSelf
+{{ Fill EmailToSelf Description }}
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -IncludeManagers
+{{ Fill IncludeManagers Description }}
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MembersProperty
+{{ Fill MembersProperty Description }}
+
+```yaml
+Type: String[]
 Parameter Sets: (All)
 Aliases:
 
