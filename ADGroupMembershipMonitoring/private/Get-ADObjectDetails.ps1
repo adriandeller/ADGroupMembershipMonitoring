@@ -41,7 +41,18 @@ function Get-ADObjectDetails
         if ($PSCmdlet.ParameterSetName -eq 'ADObject')
         {
             # Get Domain (FQDN) of the AD object by the Domain SID
-            $DomainSid = $ADObject.SID.AccountDomainSid.Value
+            if ($ADObject.SID)
+            {
+                $DomainSid = $ADObject.SID.AccountDomainSid.Value
+            }
+            else
+            {
+                # ADObject from Get-ADObject has no 'SID' attribute but 'objectSID'
+                $ADObject | Add-Member -MemberType AliasProperty -Name 'SID' -Value 'objectSID' -Force
+                $DomainSid = $ADObject.objectSID.AccountDomainSid.Value
+            }
+
+            Write-Verbose ("DomainSid: {0}" -f $DomainSid)
             $Server    = $DomainSidLookupTable[$DomainSid].DNSRoot
 
             #$SamAccountName = $ADObject.SamAccountName

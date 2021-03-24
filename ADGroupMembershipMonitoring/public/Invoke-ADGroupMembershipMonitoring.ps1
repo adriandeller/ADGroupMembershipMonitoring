@@ -714,20 +714,29 @@ function Invoke-ADGroupMembershipMonitoring
 
                     if ($PSBoundParameters['Recursive'])
                     {
-                        # Collect direct group membeship to determine value for 'Nested' property
-                        $ADGroupMembersDirect = Get-ADGroupMember -Identity $ADGroup @GroupMemberSplatting -ErrorAction Stop -ErrorVariable ErrorProcessGetADGroupMember
+                        # Known issue with Get-ADGroupMember (ADWS limit)
+                        # Error "The size limit for this request was exceeded" when Group has more than 5000 members
+                        $LDAPFilter = "(&(memberOf:1.2.840.113556.1.4.1941:={0})(!(objectCategory=group)))" -f $ADGroup.DistinguishedName
+                        $ADGroupMembers = Get-ADObject -LDAPFilter $LDAPFilter @GroupMemberSplatting -Properties objectSID -ErrorAction Stop -ErrorVariable ErrorProcessGetADGroupMember
 
-                        $GroupMemberSplatting.Recursive = $true
+                        # Collect direct group membeship to determine value for the 'Nested' property
+                        #$ADGroupMembersDirect = Get-ADGroupMember -Identity $ADGroup @GroupMemberSplatting -ErrorAction Stop -ErrorVariable ErrorProcessGetADGroupMember
+                        $LDAPFilter = "(memberOf={0})" -f $ADGroup.DistinguishedName
+                        $ADGroupMembersDirect = Get-ADObject -LDAPFilter $LDAPFilter @GroupMemberSplatting -ErrorAction Stop -ErrorVariable ErrorProcessGetADGroupMember
                     }
-
-                    $GroupMemberSplatting.Identity = $ADGroup
-
-                    $ADGroupMembers = Get-ADGroupMember @GroupMemberSplatting -ErrorAction Stop -ErrorVariable ErrorProcessGetADGroupMember
+                    else
+                    {
+                        # Known issue with Get-ADGroupMember (ADWS limit)
+                        #$GroupMemberSplatting.Identity = $ADGroup
+                        #$ADGroupMembers = Get-ADGroupMember @GroupMemberSplatting -ErrorAction Stop -ErrorVariable ErrorProcessGetADGroupMember
+                        $LDAPFilter = "(memberOf={0})" -f $ADGroup.DistinguishedName
+                        $ADGroupMembers = Get-ADObject -LDAPFilter $LDAPFilter @GroupMemberSplatting -Properties objectSID -ErrorAction Stop -ErrorVariable ErrorProcessGetADGroupMember
+                    }
 
                     Write-Verbose -Message "    [+] Collected AD Group Membership"
 
                     # For each group member, get AD object with needed properties
-                    $Members = $ADGroupMembers | Get-ADObjectDetails -ErrorAction Continue
+                    $Members = $ADGroupMembers | Get-ADObjectDetails -ErrorAction Continue #-Verbose
 
                     if ($Members)
                     {
@@ -1011,7 +1020,9 @@ function Invoke-ADGroupMembershipMonitoring
                                     {
                                         # validate if object is direct member in group
                                         $PropertyValue = $null
-                                        $PropertyValue = if($MemberItem.SID -notin $ADGroupMembersDirect.SID) { $true }
+                                        #$PropertyValue = if($MemberItem.SID -notin $ADGroupMembersDirect.SID) { $true }
+                                        # Note: Get-ADObject returns no SID, so compare using attribute ObjectGUID
+                                        $PropertyValue = if ($MemberItem.objectGUID -notin $ADGroupMembersDirect.objectGUID) { $true }
                                         $ListItem.Add($PropertyName, $PropertyValue)
                                     }
                                     Default
