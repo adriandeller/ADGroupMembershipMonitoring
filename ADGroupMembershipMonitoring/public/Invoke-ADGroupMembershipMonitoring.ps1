@@ -372,7 +372,7 @@ function Invoke-ADGroupMembershipMonitoring
             $ChangesDateTimeFormat = 's'                         # format for export to CSV files
             $ReporCreatedDateTimeFormat = 'dd.MM.yyyy HH:mm:ss'  # format for report creation date/time information
             $ReportChangesDateTimeFormat = 'yyyy-MM-dd HH:mm:ss' # format for DateTime property in HTML reports
-            $FileNameDateTimeFormat = 'yyyyMMdd_HHmmss'          # format for DateTime information in CSV file names
+            $FileNameDateTimeFormat = 'yyyyMMdd_HHmmss'          # format for DateTime information in HTML file names
 
             # list of known DateTime formats used in legacy CSV files
             $KnownInputFormat = 'yyyyMMdd-HH:mm:ss', $ChangesDateTimeFormat
